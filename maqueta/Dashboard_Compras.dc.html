@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E6E8EB;font-family:Barlow,system-ui,sans-serif;color:#1D1F20;-webkit-font-smoothing:antialiased}
+a{color:#2F5478}a:hover{color:#1D3A57}
+select:focus-visible,button:focus-visible{outline:2px solid #2F5478;outline-offset:1px}
+</style>
+</helmet>
+<div onClick="{{closeCtx}}" style="min-height:100vh; display:flex; flex-direction:column">
+  <div style="position:sticky; top:0; z-index:5; background:#1D1F20; color:#F2F2F3; display:flex; align-items:stretch; justify-content:space-between; gap:24px; padding:0 24px; flex-wrap:wrap">
+    <div style="display:flex; align-items:center; gap:12px; padding:12px 0">
+      <div style="width:10px; height:10px; background:#7FA3C4"></div>
+      <div style="font:700 18px/20px 'Barlow Condensed',sans-serif; letter-spacing:.02em">Dashboard de Compras</div>
+      <div style="font:400 12px/16px Barlow; color:#A9AEB4">Maqueta Power BI · datos ficticios</div>
+    </div>
+    <div style="display:flex; gap:4px; flex-wrap:wrap">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+        <button onClick="{{t.go}}" style="background:transparent; border:0; border-bottom:2px solid {{t.bc}}; color:{{t.c}}; font:600 13px/16px Barlow; padding:14px 12px 12px; cursor:pointer">{{t.l}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{isCover}}" hint-placeholder-val="{{ false }}">
+    <div style="background:#F2F2F3; flex:1">
+      <div style="max-width:1040px; margin:0 auto; padding:56px 24px 96px; display:flex; flex-direction:column; gap:64px">
+        <div style="display:flex; flex-direction:column; gap:16px; max-width:760px">
+          <div style="font:600 12px/16px Barlow; letter-spacing:.12em; text-transform:uppercase; color:#46698C">Proyecto de portafolio · Power BI</div>
+          <h1 style="margin:0; font:700 56px/56px 'Barlow Condensed',sans-serif; letter-spacing:-.01em">Dashboard de Compras para una empresa industrial</h1>
+          <p style="margin:0; font:400 17px/26px Barlow; color:#3C4046; text-wrap:pretty">Empresa industrial peruana con tres unidades de negocio: Manufactura, Distribución y Servicios. Exportación del ERP con proveedor, fecha, centro de costo, tipo de movimiento, cantidad y monto en soles, periodo 2023–2026. Proveedores anonimizados y montos escalados.</p>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; padding-top:8px">
+            <button onClick="{{goP1}}" style="background:#2F5478; color:#FFFFFF; border:0; font:600 14px/20px Barlow; padding:10px 18px; cursor:pointer">Abrir el reporte →</button>
+            <button onClick="{{downloadTheme}}" style="background:transparent; color:#1D1F20; border:1px solid #1D1F20; font:600 14px/20px Barlow; padding:9px 18px; cursor:pointer">Descargar tema JSON</button>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px">
+          <h2 style="margin:0; font:700 30px/34px 'Barlow Condensed',sans-serif">3 hallazgos con su recomendación</h2>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px">
+            <sc-for list="{{findings}}" as="f" hint-placeholder-count="3">
+              <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:24px; display:flex; flex-direction:column; gap:14px">
+                <div style="font:700 36px/36px 'Barlow Condensed',sans-serif; color:#2F5478">{{f.n}}</div>
+                <div style="font:600 17px/23px Barlow; text-wrap:pretty">{{f.h}}</div>
+                <div style="display:flex; flex-direction:column; gap:4px; border-top:1px solid #ECEEF0; padding-top:12px">
+                  <div style="font:600 11px/14px Barlow; letter-spacing:.08em; text-transform:uppercase; color:#5B6168">Recomendación</div>
+                  <div style="font:400 14px/21px Barlow; color:#3C4046; text-wrap:pretty">{{f.r}}</div>
+                </div>
+                <button onClick="{{f.go}}" style="align-self:flex-start; background:transparent; border:0; padding:0; font:600 13px/18px Barlow; color:#2F5478; cursor:pointer">{{f.link}}</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:40px">
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <h2 style="margin:0; font:700 30px/34px 'Barlow Condensed',sans-serif">Antes de los gráficos: qué validar en tus datos</h2>
+            <p style="margin:0; font:500 15px/22px Barlow; color:#5B6168">Lo que tienes que definir o pedir en la exportación del ERP:</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:18px; font:400 15px/23px Barlow; color:#2A2D31">
+            <p style="margin:0; text-wrap:pretty"><strong>IGV:</strong> trabaja con montos sin IGV y escríbelo en el subtítulo de cada página.</p>
+            <p style="margin:0; text-wrap:pretty"><strong>Tipo de movimiento:</strong> incluye devoluciones y anulaciones. Si sumas todo, el gasto sale inflado. Crea una tabla de tipos de movimiento con una columna Signo (+1 / −1 / 0).</p>
+            <p style="margin:0; text-wrap:pretty"><strong>Tiempo de atención:</strong> con una sola fecha no se puede calcular. Necesitas dos, por ejemplo la de solicitud o de OC y la de recepción. Si el ERP no las tiene, deja el KPI como mejora futura y explícalo; es mejor que inventar el dato.</p>
+            <p style="margin:0; text-wrap:pretty"><strong>Número de OC y material o familia:</strong> pídelos. Sin el número de OC no puedes medir el ticket promedio, y sin la categoría no hay análisis de gasto por categoría, que es lo más valorado en compras.</p>
+            <p style="margin:0; text-wrap:pretty"><strong>2026 está incompleto:</strong> compara el acumulado del año contra el mismo periodo del año anterior, y calcula la variación mensual solo con el último mes cerrado.</p>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:24px">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:40px">
+            <h2 style="margin:0; font:700 30px/34px 'Barlow Condensed',sans-serif">Modelo estrella <span style="font:500 16px/22px Barlow; color:#5B6168; display:block; padding-top:6px">(es lo primero que revisa un reclutador técnico)</span></h2>
+            <ul style="margin:0; padding-left:18px; display:flex; flex-direction:column; gap:8px; font:400 15px/23px Barlow; color:#2A2D31">
+              <li>Una tabla central de compras.</li>
+              <li>Dimensiones: Calendario, Proveedor, Tipo de movimiento y Centro de costo.</li>
+              <li>Centro de costo debe llevar la unidad de negocio: Manufactura, Distribución o Servicios.</li>
+            </ul>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:32px 24px; overflow-x:auto">
+            <div style="display:grid; grid-template-columns:minmax(200px,1fr) 56px minmax(220px,1fr) 56px minmax(200px,1fr); grid-template-rows:auto 40px auto 40px auto; min-width:760px; font:400 12px/19px 'JetBrains Mono',monospace; color:#3C4046">
+              <div style="grid-column:3; grid-row:1; border:1px solid #1D1F20; padding:12px 14px">
+                <div style="font:700 16px/20px 'Barlow Condensed',sans-serif; color:#1D1F20; padding-bottom:6px">Dim_Calendario</div>
+                <div>Fecha · Año · Mes · Trimestre</div><div style="color:#7A8087">2023-01-01 → 2026-12-31</div><div style="color:#7A8087">marcada como tabla de fechas</div>
+              </div>
+              <div style="grid-column:3; grid-row:2; display:flex; justify-content:center"><div style="width:1px; background:#1D1F20"></div></div>
+              <div style="grid-column:1; grid-row:3; border:1px solid #1D1F20; padding:12px 14px; align-self:center">
+                <div style="font:700 16px/20px 'Barlow Condensed',sans-serif; color:#1D1F20; padding-bottom:6px">Dim_Proveedor</div>
+                <div>ProveedorKey · RUC</div><div>Razón social</div><div>Rubro · Ciudad / país</div><div>Fecha primera compra</div>
+              </div>
+              <div style="grid-column:2; grid-row:3; display:flex; align-items:center"><div style="height:1px; width:100%; background:#1D1F20"></div></div>
+              <div style="grid-column:3; grid-row:3; border:2px solid #2F5478; background:#F3F6F9; padding:14px 16px">
+                <div style="font:700 18px/22px 'Barlow Condensed',sans-serif; color:#2F5478; padding-bottom:6px">Fact_Compras</div>
+                <div>FechaKey · ProveedorKey</div><div>CentroCostoKey · TipoMovKey</div><div>NroOC · Cantidad · MontoPEN</div><div style="color:#7A8087">FechaRecepción (si el ERP la trae)</div>
+              </div>
+              <div style="grid-column:4; grid-row:3; display:flex; align-items:center"><div style="height:1px; width:100%; background:#1D1F20"></div></div>
+              <div style="grid-column:5; grid-row:3; border:1px solid #1D1F20; padding:12px 14px; align-self:center">
+                <div style="font:700 16px/20px 'Barlow Condensed',sans-serif; color:#1D1F20; padding-bottom:6px">Dim_CentroCosto</div>
+                <div>Código · Nombre · Área</div><div>Unidad de negocio</div><div style="color:#7A8087">Manufactura / Distribución / Servicios</div>
+              </div>
+              <div style="grid-column:3; grid-row:4; display:flex; justify-content:center"><div style="width:1px; background:#1D1F20"></div></div>
+              <div style="grid-column:3; grid-row:5; border:1px solid #1D1F20; padding:12px 14px">
+                <div style="font:700 16px/20px 'Barlow Condensed',sans-serif; color:#1D1F20; padding-bottom:6px">Dim_TipoMovimiento</div>
+                <div>Descripción · Signo (+1 / −1 / 0)</div><div>EsDevolución</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px">
+          <h2 style="margin:0; font:700 30px/34px 'Barlow Condensed',sans-serif">1. Páginas y la decisión que responde cada una</h2>
+          <div style="background:#FFFFFF; border:1px solid #DCDFE3; overflow-x:auto">
+            <div style="display:grid; grid-template-columns:minmax(170px,1fr) minmax(220px,1.4fr) minmax(260px,1.6fr); min-width:680px; font:400 14px/21px Barlow">
+              <div style="padding:12px 16px; font:600 11px/16px Barlow; letter-spacing:.08em; text-transform:uppercase; color:#5B6168; border-bottom:1px solid #1D1F20">Página</div>
+              <div style="padding:12px 16px; font:600 11px/16px Barlow; letter-spacing:.08em; text-transform:uppercase; color:#5B6168; border-bottom:1px solid #1D1F20">Pregunta</div>
+              <div style="padding:12px 16px; font:600 11px/16px Barlow; letter-spacing:.08em; text-transform:uppercase; color:#5B6168; border-bottom:1px solid #1D1F20">Decisión que habilita</div>
+              <div style="padding:14px 16px; font-weight:600; border-bottom:1px solid #ECEEF0">1. Resumen ejecutivo</div>
+              <div style="padding:14px 16px; border-bottom:1px solid #ECEEF0">¿Cuánto gastamos y cómo vamos frente al año pasado?</div>
+              <div style="padding:14px 16px; border-bottom:1px solid #ECEEF0">Priorizar o frenar gasto por unidad de negocio</div>
+              <div style="padding:14px 16px; font-weight:600; border-bottom:1px solid #ECEEF0">2. Proveedores</div>
+              <div style="padding:14px 16px; border-bottom:1px solid #ECEEF0">¿De quién dependemos?</div>
+              <div style="padding:14px 16px; border-bottom:1px solid #ECEEF0">Negociar con los proveedores que concentran el gasto, reducir la dependencia y consolidar la cola larga</div>
+              <div style="padding:14px 16px; font-weight:600; border-bottom:1px solid #ECEEF0">3. Tendencia</div>
+              <div style="padding:14px 16px; border-bottom:1px solid #ECEEF0">¿El gasto crece o es estacional? ¿Qué mes fue anómalo?</div>
+              <div style="padding:14px 16px; border-bottom:1px solid #ECEEF0">Planificar compras anticipadas y ajustar el presupuesto</div>
+              <div style="padding:14px 16px; font-weight:600">4. Detalle de órdenes de compra</div>
+              <div style="padding:14px 16px">¿Qué transacciones explican las cifras?</div>
+              <div style="padding:14px 16px">Seguir devoluciones y pedidos lentos, y detectar compras fraccionadas</div>
+            </div>
+          </div>
+          <p style="margin:0; font:400 15px/23px Barlow; color:#3C4046">Conecta las páginas 1 a 3 con la 4 mediante drill-through: clic derecho sobre un proveedor y "Ver detalle".</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px">
+          <h2 style="margin:0; font:700 30px/34px 'Barlow Condensed',sans-serif">Medidas DAX base</h2>
+          <pre style="margin:0; background:#FFFFFF; border:1px solid #DCDFE3; padding:24px; overflow-x:auto; font:400 12.5px/20px 'JetBrains Mono',monospace; color:#1D1F20">Gasto Neto = SUMX ( Fact_Compras, Fact_Compras[MontoPEN] * RELATED ( Dim_TipoMovimiento[Signo] ) )
+
+Gasto AA = CALCULATE ( [Gasto Neto], SAMEPERIODLASTYEAR ( Dim_Calendario[Fecha] ) )
+Var % vs AA = DIVIDE ( [Gasto Neto] - [Gasto AA], [Gasto AA] )
+
+Gasto Mes Anterior = CALCULATE ( [Gasto Neto], DATEADD ( Dim_Calendario[Fecha], -1, MONTH ) )
+Var % MoM = DIVIDE ( [Gasto Neto] - [Gasto Mes Anterior], [Gasto Mes Anterior] )
+
+Gasto YTD = TOTALYTD ( [Gasto Neto], Dim_Calendario[Fecha] )
+
+Proveedores Activos = CALCULATE ( DISTINCTCOUNT ( Fact_Compras[ProveedorKey] ), Dim_TipoMovimiento[Signo] = 1 )
+
+Nro OC = DISTINCTCOUNT ( Fact_Compras[NroOC] )
+Ticket Promedio OC = DIVIDE ( [Gasto Neto], [Nro OC] )
+
+Monto Devuelto = CALCULATE ( SUMX ( Fact_Compras, Fact_Compras[MontoPEN] ), Dim_TipoMovimiento[EsDevolucion] = TRUE () )
+% Devoluciones = DIVIDE ( [Monto Devuelto], [Gasto Neto] + [Monto Devuelto] )
+
+-- Pareto: % acumulado del proveedor en el ranking
+% Acumulado Pareto =
+VAR GastoProv = [Gasto Neto]
+VAR Total = CALCULATE ( [Gasto Neto], ALLSELECTED ( Dim_Proveedor ) )
+VAR Acum =
+    SUMX (
+        FILTER (
+            ADDCOLUMNS ( ALLSELECTED ( Dim_Proveedor[Proveedor] ), "@g", [Gasto Neto] ),
+            [@g] &gt;= GastoProv
+        ),
+        [@g]
+    )
+RETURN DIVIDE ( Acum, Total )
+
+Proveedores 80% =
+COUNTROWS (
+    FILTER ( ALLSELECTED ( Dim_Proveedor[Proveedor] ), [% Acumulado Pareto] &lt;= 0.8 )
+) + 1</pre>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap">
+            <h2 style="margin:0; font:700 30px/34px 'Barlow Condensed',sans-serif">Paleta y tema JSON</h2>
+            <div style="display:flex; gap:8px">
+              <button onClick="{{copyTheme}}" style="background:transparent; border:1px solid #1D1F20; font:600 13px/18px Barlow; padding:7px 14px; cursor:pointer; color:#1D1F20">{{copyLabel}}</button>
+              <button onClick="{{downloadTheme}}" style="background:#2F5478; color:#FFFFFF; border:0; font:600 13px/18px Barlow; padding:8px 14px; cursor:pointer">Descargar .json</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:1px; background:#DCDFE3; border:1px solid #DCDFE3">
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#2F5478"></div><div style="font:600 13px/16px Barlow">Principal</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#2F5478 · serie principal</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#7FA3C4"></div><div style="font:600 13px/16px Barlow">Secundario</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#7FA3C4 · segunda serie</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#B9BDC2"></div><div style="font:600 13px/16px Barlow">Comparativo</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#B9BDC2 · año anterior, cola larga</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#D08A1E"></div><div style="font:600 13px/16px Barlow">Alerta</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#D08A1E · solo alertas</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#B8473D"></div><div style="font:600 13px/16px Barlow">▲ El gasto sube</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#B8473D · solo variaciones</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#2F8062"></div><div style="font:600 13px/16px Barlow">▼ El gasto baja</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#2F8062 · solo variaciones</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#3F6C97"></div><div style="font:600 13px/16px Barlow">Manufactura</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#3F6C97</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#3A8583"></div><div style="font:600 13px/16px Barlow">Distribución</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#3A8583</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#7C6FA3"></div><div style="font:600 13px/16px Barlow">Servicios</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#7C6FA3</div></div>
+            <div style="background:#FFFFFF; padding:12px; display:flex; flex-direction:column; gap:8px"><div style="height:40px; background:#EEF0F2; border:1px solid #DCDFE3; box-sizing:border-box"></div><div style="font:600 13px/16px Barlow">Lienzo · tarjeta</div><div style="font:400 11px/14px 'JetBrains Mono',monospace; color:#5B6168">#EEF0F2 · #FFFFFF</div></div>
+          </div>
+          <pre style="margin:0; background:#1D1F20; color:#E6E8EB; padding:24px; overflow-x:auto; max-height:420px; font:400 12px/19px 'JetBrains Mono',monospace">{{themeJson}}</pre>
+          <p style="margin:0; font:400 13px/20px Barlow; color:#5B6168">La maqueta usa Barlow. En Power BI el tema usa Segoe UI, que viene instalada en Windows y se ve igual en el servicio.</p>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isReport}}" hint-placeholder-val="{{ true }}">
+    <div style="padding:24px; display:flex; flex-direction:column; gap:12px; align-items:center">
+      <div ref="{{wrapRef}}" style="width:100%; max-width:1280px">
+        <div style="{{frameStyle}}">
+          <div ref="{{canvasRef}}" style="{{canvasStyle}}">
+            <div style="width:1280px; height:720px; background:#EEF0F2; padding:24px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px; font-family:Barlow,sans-serif; position:relative">
+
+              <div style="height:48px; display:flex; justify-content:space-between; align-items:flex-start; gap:24px">
+                <div style="display:flex; flex-direction:column; gap:4px; min-width:0">
+                  <div style="display:flex; align-items:center; gap:12px">
+                    <div style="font:700 26px/28px 'Barlow Condensed',sans-serif; color:#1D1F20; white-space:nowrap">{{pageTitle}}</div>
+                    <sc-if value="{{showDrill}}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; align-items:center; gap:6px">
+                        <button onClick="{{drillBack}}" style="background:#FFFFFF; border:1px solid #CDD1D6; font:600 11px/14px Barlow; padding:4px 8px; cursor:pointer; color:#1D1F20">← Volver</button>
+                        <div style="display:flex; align-items:center; gap:6px; background:#2F5478; color:#FFFFFF; font:600 11px/14px Barlow; padding:5px 6px 5px 10px">Detalle de: {{drillLabel}}<button onClick="{{drillClear}}" style="background:transparent; border:0; color:#FFFFFF; font:600 12px/12px Barlow; cursor:pointer; padding:0 2px">✕</button></div>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <div style="font:400 12px/16px Barlow; color:#5B6168; white-space:nowrap">S/ sin IGV · actualizado a 31/08/2026 · {{periodNote}} · <span style="color:#B8473D; font-weight:600">▲ el gasto sube</span> · <span style="color:#2F8062; font-weight:600">▼ el gasto baja</span></div>
+                </div>
+                <div style="display:flex; gap:8px; flex-shrink:0">
+                  <label style="display:flex; flex-direction:column; gap:2px; width:96px">
+                    <span style="font:600 10px/12px Barlow; letter-spacing:.06em; text-transform:uppercase; color:#5B6168">Periodo</span>
+                    <select value="{{fYear}}" onChange="{{onYear}}" style="height:28px; border:1px solid #CDD1D6; background:#FFFFFF; font:500 12px Barlow; color:#1D1F20; padding:0 6px; border-radius:0">
+                      <sc-for list="{{yearOpts}}" as="o"><option value="{{o.v}}">{{o.l}}</option></sc-for>
+                    </select>
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:2px; width:130px">
+                    <span style="font:600 10px/12px Barlow; letter-spacing:.06em; text-transform:uppercase; color:#5B6168">Unidad de negocio</span>
+                    <select value="{{fBu}}" onChange="{{onBu}}" style="height:28px; border:1px solid #CDD1D6; background:#FFFFFF; font:500 12px Barlow; color:#1D1F20; padding:0 6px; border-radius:0">
+                      <sc-for list="{{buOpts}}" as="o"><option value="{{o.v}}">{{o.l}}</option></sc-for>
+                    </select>
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:2px; width:150px">
+                    <span style="font:600 10px/12px Barlow; letter-spacing:.06em; text-transform:uppercase; color:#5B6168">Centro de costo</span>
+                    <select value="{{fCc}}" onChange="{{onCc}}" style="height:28px; border:1px solid #CDD1D6; background:#FFFFFF; font:500 12px Barlow; color:#1D1F20; padding:0 6px; border-radius:0">
+                      <sc-for list="{{ccOpts}}" as="o"><option value="{{o.v}}">{{o.l}}</option></sc-for>
+                    </select>
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:2px; width:130px">
+                    <span style="font:600 10px/12px Barlow; letter-spacing:.06em; text-transform:uppercase; color:#5B6168">Proveedor</span>
+                    <select value="{{fSup}}" onChange="{{onSup}}" style="height:28px; border:1px solid #CDD1D6; background:#FFFFFF; font:500 12px Barlow; color:#1D1F20; padding:0 6px; border-radius:0">
+                      <sc-for list="{{supOpts}}" as="o"><option value="{{o.v}}">{{o.l}}</option></sc-for>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <sc-if value="{{isP1}}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; height:96px">
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Gasto neto acumulado {{p1.yLabel}}</div>
+                    <div style="display:flex; align-items:baseline; gap:10px"><div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p1.g}}</div><div style="font:700 14px/16px Barlow; color:{{p1.vc}}">{{p1.vt}}</div></div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p1.aaTxt}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Proveedores activos</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p1.active}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p1.activeSub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">% del gasto en los 10 mayores proveedores</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p1.top10}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p1.top10Sub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Ticket promedio por OC</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p1.ticket}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p1.ticketSub}}</div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:728px 488px; gap:16px; height:496px">
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                    <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p1.lineTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Gasto neto mensual, año actual contra año anterior</div></div>
+                    <div>{{p1.lineChart}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                    <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p1.ccTitle}}</div><div style="display:flex; gap:10px; font:400 11px/14px Barlow; color:#5B6168"><span>Gasto por centro de costo · clic derecho → Ver detalle</span></div></div>
+                    <div>{{p1.ccChart}}</div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isP2}}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; height:96px">
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Proveedores que hacen el 80% del gasto</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p2.n80}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">Clase A del Pareto</div>
+                  </div>
+                  <div style="background:{{p2.depBg}}; border:1px solid {{p2.depBd}}; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Participación del proveedor principal</div>
+                    <div style="display:flex; align-items:baseline; gap:10px"><div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:{{p2.depC}}">{{p2.top1}}</div><div style="font:600 12px/16px Barlow; color:#1D1F20">{{p2.top1Name}}</div></div>
+                    <div style="font:500 11px/14px Barlow; color:{{p2.depC}}">{{p2.depTxt}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Proveedores activos</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p1.active}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p1.activeSub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Proveedores nuevos en {{p1.yLabel}}</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p2.nNew}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p2.nNewSub}}</div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:728px 488px; gap:16px; height:496px">
+                  <div style="display:flex; flex-direction:column; gap:16px; min-width:0">
+                    <div style="height:240px; background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px">
+                      <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p2.paretoTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Curva de Pareto · <span style="color:#2F5478; font-weight:600">■ A</span> <span style="color:#46698C; font-weight:600">■ B</span> <span style="color:#7A8087; font-weight:600">■ C</span> · línea de referencia en 80%</div></div>
+                      <div>{{p2.pareto}}</div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:400px 312px; gap:16px; height:240px">
+                      <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                        <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p2.scatterTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Frecuencia de compra contra monto · tamaño = nº de centros de costo</div></div>
+                        <div>{{p2.scatter}}</div>
+                      </div>
+                      <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                        <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p2.stackTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Proveedores nuevos contra recurrentes por año</div></div>
+                        <div>{{p2.stack}}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                    <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p2.topTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Gasto de los 15 mayores proveedores · clic derecho → Ver detalle</div></div>
+                    <div>{{p2.top15}}</div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isP3}}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid; grid-template-columns:296px 296px 608px; gap:16px; height:96px">
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Variación contra el mes anterior</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:{{p3.momC}}">{{p3.mom}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p3.momSub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Variación contra el año anterior</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:{{p1.vc}}">{{p1.vt}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p3.yoySub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; gap:4px; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Variación mensual, últimos 12 meses cerrados</div>
+                    <div>{{p3.momBars}}</div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:16px; height:496px">
+                  <div style="display:grid; grid-template-columns:728px 488px; gap:16px; height:280px">
+                    <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                      <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p3.trendTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Gasto mensual 2023–2026 con promedio móvil de 3 meses</div></div>
+                      <div>{{p3.trend}}</div>
+                    </div>
+                    <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                      <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p3.heatTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Estacionalidad en S/ M · clic derecho en un mes → Ver detalle</div></div>
+                      <div>{{p3.heat}}</div>
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns:488px 360px 352px; gap:16px; height:200px">
+                    <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                      <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p3.smTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Tendencia por unidad de negocio · misma escala</div></div>
+                      <div>{{p3.sm}}</div>
+                    </div>
+                    <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                      <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p3.cumTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Acumulado del año contra el año anterior</div></div>
+                      <div>{{p3.cum}}</div>
+                    </div>
+                    <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0">
+                      <sc-if value="{{showWF}}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p3.wfTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">{{p3.wfSub}}</div></div>
+                        <div>{{p3.wf}}</div>
+                      </sc-if>
+                      <sc-if value="{{hideWF}}" hint-placeholder-val="{{ false }}">
+                        <div style="font:600 14px/18px Barlow; color:#1D1F20">Cascada (opcional)</div>
+                        <div style="font:400 12px/18px Barlow; color:#5B6168">Oculta desde los ajustes. Explica qué causó la variación anual.</div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isP4}}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; height:96px">
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Número de OCs</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p4.nOC}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p4.nMov}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Tiempo de atención promedio</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p4.lead}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p4.leadSub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">% atendidos a tiempo</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:{{p4.otC}}">{{p4.ot}}</div>
+                    <div style="position:relative; height:4px; background:#ECEEF0"><div style="position:absolute; left:0; top:0; bottom:0; width:{{p4.otW}}; background:{{p4.otBar}}"></div><div style="position:absolute; top:-3px; bottom:-3px; width:2px; background:#1D1F20; left:{{p4.metaW}}"></div></div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p4.otSub}}</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">Devoluciones</div>
+                    <div style="display:flex; align-items:baseline; gap:8px"><div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p4.dev}}</div><div style="font:600 13px/16px Barlow; color:#1D1F20">{{p4.devPct}}</div></div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">del gasto bruto del periodo</div>
+                  </div>
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:12px 16px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; min-width:0">
+                    <div style="font:500 12px/16px Barlow; color:#5B6168">OCs por debajo de {{p4.umbral}}</div>
+                    <div style="font:700 32px/34px 'Barlow Condensed',sans-serif; color:#1D1F20">{{p4.small}}</div>
+                    <div style="font:400 11px/14px Barlow; color:#7A8087">{{p4.smallSub}}</div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:728px 488px; grid-template-rows:496px; gap:16px; height:496px">
+                  <div style="background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0; overflow:hidden">
+                    <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p4.tableTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">{{p4.tableSub}}</div></div>
+                    <div style="display:flex; flex-direction:column; min-height:0; flex:1">
+                      <div style="display:grid; grid-template-columns:88px 72px 96px minmax(0,1fr) 78px 104px 52px; gap:8px; align-items:center; height:28px; padding:0 8px; border-bottom:1px solid #1D1F20; font:600 10px/12px Barlow; letter-spacing:.05em; text-transform:uppercase; color:#5B6168">
+                        <div>Nº OC</div>
+                        <button onClick="{{sortFecha}}" style="background:transparent; border:0; padding:0; text-align:left; font:inherit; letter-spacing:inherit; text-transform:inherit; color:inherit; cursor:pointer">Fecha {{sortA.fecha}}</button>
+                        <div>Proveedor</div><div>Centro de costo</div><div>Tipo</div>
+                        <button onClick="{{sortMonto}}" style="background:transparent; border:0; padding:0; text-align:right; font:inherit; letter-spacing:inherit; text-transform:inherit; color:inherit; cursor:pointer">Monto {{sortA.monto}}</button>
+                        <button onClick="{{sortDias}}" style="background:transparent; border:0; padding:0; text-align:right; font:inherit; letter-spacing:inherit; text-transform:inherit; color:inherit; cursor:pointer">Días {{sortA.dias}}</button>
+                      </div>
+                      <div style="overflow-y:auto; flex:1; min-height:0">
+                        <sc-for list="{{p4.rows}}" as="r" hint-placeholder-count="12">
+                          <div style="display:grid; grid-template-columns:88px 72px 96px minmax(0,1fr) 78px 104px 52px; gap:8px; align-items:center; height:26px; padding:0 8px; border-bottom:1px solid #ECEEF0; font:400 11.5px/14px Barlow; color:#1D1F20; background:{{r.bg}}; font-variant-numeric:tabular-nums">
+                            <div>{{r.oc}}</div><div>{{r.fecha}}</div><div>{{r.prov}}</div>
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{r.cc}}</div>
+                            <div style="color:{{r.tc}}; font-weight:{{r.tw}}">{{r.tipo}}</div>
+                            <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; color:{{r.mc}}"><sc-if value="{{r.small}}"><span style="font:600 9px/12px Barlow; color:#5B6168; border:1px solid #CDD1D6; padding:0 3px">&lt; umbral</span></sc-if>{{r.monto}}</div>
+                            <div style="text-align:right; color:{{r.dc}}; font-weight:{{r.dw}}">{{r.dias}}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:16px; min-width:0">
+                    <div style="height:240px; background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px">
+                      <sc-if value="{{hasDates}}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p4.histTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Tiempo de atención por rangos de días · OC → recepción</div></div>
+                        <div>{{p4.hist}}</div>
+                      </sc-if>
+                      <sc-if value="{{noDates}}" hint-placeholder-val="{{ false }}">
+                        <div style="font:600 11px/14px Barlow; letter-spacing:.08em; text-transform:uppercase; color:#8F5410">Mejora futura · fase 2</div>
+                        <div style="font:600 16px/22px Barlow; color:#1D1F20">Tiempo de atención</div>
+                        <div style="font:400 13px/20px Barlow; color:#3C4046; text-wrap:pretty">Con una sola fecha no se puede calcular. Necesitas dos, por ejemplo la de solicitud o de OC y la de recepción. Si el ERP no las tiene, deja el KPI como mejora futura y explícalo; es mejor que inventar el dato.</div>
+                      </sc-if>
+                    </div>
+                    <div style="height:240px; background:#FFFFFF; border:1px solid #DCDFE3; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; gap:12px">
+                      <div style="display:flex; flex-direction:column; gap:2px"><div style="font:600 14px/18px Barlow; color:#1D1F20">{{p4.devTitle}}</div><div style="font:400 11px/14px Barlow; color:#5B6168">Monto devuelto por proveedor · % sobre su gasto bruto</div></div>
+                      <div>{{p4.devChart}}</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ctxOpen}}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{stop}}" style="{{ctxStyle}}">
+                  <div style="padding:8px 12px 6px; font:500 10px/12px Barlow; letter-spacing:.06em; text-transform:uppercase; color:#7A8087">{{ctxLabel}}</div>
+                  <button onClick="{{doDrill}}" style="display:block; width:100%; text-align:left; background:transparent; border:0; border-top:1px solid #ECEEF0; padding:8px 12px; font:600 13px/16px Barlow; color:#1D1F20; cursor:pointer" style-hover="background:#EEF3F8">Ver detalle →</button>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font:400 12px/16px Barlow; color:#5B6168; text-align:center">Lienzo 1280×720 · filtros sincronizados en todas las páginas · clic derecho sobre un proveedor, centro de costo o mes para ir al detalle</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;tieneFechas&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Datos&quot;},&quot;umbralOC&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:500,&quot;min&quot;:100,&quot;max&quot;:2000,&quot;step&quot;:100,&quot;unit&quot;:&quot;S/&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Umbrales&quot;},&quot;metaDias&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:15,&quot;min&quot;:5,&quot;max&quot;:45,&quot;step&quot;:1,&quot;unit&quot;:&quot;días&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Umbrales&quot;},&quot;umbralDependencia&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:25,&quot;min&quot;:10,&quot;max&quot;:50,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Umbrales&quot;},&quot;mostrarCascada&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Visuales&quot;}}">
+const H=React.createElement;
+const C={ink:'#1D1F20',ink2:'#5B6168',ink3:'#7A8087',line:'#CDD1D6',grid:'#ECEEF0',pri:'#2F5478',sec:'#7FA3C4',secTx:'#46698C',gray:'#B9BDC2',alert:'#D08A1E',alertTx:'#8F5410',up:'#B8473D',down:'#2F8062'};
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const BUS=[{n:'Manufactura',c:'#3F6C97'},{n:'Distribución',c:'#3A8583'},{n:'Servicios',c:'#7C6FA3'}];
+const CCS=[{id:'CC-110',n:'Producción',bu:0,w:.26},{id:'CC-120',n:'Mantenimiento de planta',bu:0,w:.18},{id:'CC-130',n:'Control de calidad',bu:0,w:.08},{id:'CC-210',n:'Almacén central',bu:1,w:.12},{id:'CC-220',n:'Transporte y flota',bu:1,w:.11},{id:'CC-230',n:'Ventas y distribución',bu:1,w:.06},{id:'CC-310',n:'Servicios técnicos de campo',bu:2,w:.09},{id:'CC-320',n:'Administración y finanzas',bu:2,w:.05},{id:'CC-330',n:'Tecnología de la información',bu:2,w:.05}];
+const THEME={name:'Compras · Acero',dataColors:['#2F5478','#7FA3C4','#3F6C97','#3A8583','#7C6FA3','#B9BDC2'],foreground:'#1D1F20',foregroundNeutralSecondary:'#5B6168',foregroundNeutralTertiary:'#7A8087',background:'#FFFFFF',backgroundLight:'#EEF0F2',backgroundNeutral:'#DCDFE3',tableAccent:'#2F5478',good:'#2F8062',bad:'#B8473D',neutral:'#B9BDC2',maximum:'#2F5478',center:'#7FA3C4',minimum:'#EAF0F6',hyperlink:'#2F5478',
+ textClasses:{callout:{fontSize:30,fontFace:'Segoe UI Bold',color:'#1D1F20'},title:{fontSize:13,fontFace:'Segoe UI Semibold',color:'#1D1F20'},header:{fontSize:12,fontFace:'Segoe UI Semibold',color:'#1D1F20'},label:{fontSize:10,fontFace:'Segoe UI',color:'#5B6168'}},
+ visualStyles:{'*':{'*':{background:[{show:true,color:{solid:{color:'#FFFFFF'}},transparency:0}],border:[{show:true,color:{solid:{color:'#DCDFE3'}},radius:0}],dropShadow:[{show:false}],visualHeader:[{show:false}],categoryAxis:[{gridlineShow:false,fontSize:9}],valueAxis:[{gridlineShow:true,gridlineColor:{solid:{color:'#ECEEF0'}},fontSize:9}],legend:[{show:false}]}},page:{'*':{background:[{color:{solid:{color:'#EEF0F2'}},transparency:0}],outspace:[{color:{solid:{color:'#EEF0F2'}}}]}}}};
+const THEME_TXT=JSON.stringify(THEME,null,2);
+
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let DATA=null;
+function buildData(){
+ const R=rng(20260831),NS=340;
+ const pois=l=>{const L=Math.exp(-l);let k=0,p=1;do{k++;p*=R()}while(p>L);return k-1};
+ const gs=()=>{let u=0;while(!u)u=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*R())};
+ const cw=CCS.reduce((t,c)=>t+c.w,0);
+ const pickCC=()=>{let r=R()*cw;for(let i=0;i<CCS.length;i++){r-=CCS[i].w;if(r<=0)return i}return 0};
+ const names=Array.from({length:NS},(_,i)=>i+1);for(let i=NS-1;i>0;i--){const j=Math.floor(R()*(i+1));[names[i],names[j]]=[names[j],names[i]]}
+ const sups=[];let W=0;
+ for(let i=0;i<NS;i++){const w=Math.pow(i+2,-1.7);W+=w;let f;
+  if(i<15)f=3+R()*5;else if(i<70)f=R()<.35?2.5+R()*3:.3+R();else f=R()<.12?.8+R()*1.6:.03+R()*.2;
+  const first=i<40?-1:(R()<.7?-1:Math.floor(R()*44));
+  sups.push({i,name:'Proveedor '+String(names[i]).padStart(3,'0'),w,f,cc:pickCC(),first,dev:R()<.12?.09:.025});}
+ const G=[1,1.08,1.17,1.13],SE=[.86,.9,1.14,.98,.95,1,1.04,.96,1,1.04,1.08,1.22];
+ const recs=[],seq=[0,0,0,0];
+ for(let mi=0;mi<44;mi++){const y=Math.floor(mi/12),m=mi%12,T=2.6e6*G[y]*SE[m]*(1+gs()*.04);
+  for(const s of sups){if(s.first>mi)continue;const n=pois(s.f);if(!n)continue;const ex=T*s.w/W;
+   for(let k=0;k<n;k++){const cc=R()<.72?s.cc:pickCC();let amt=ex/s.f*Math.exp(gs()*.55-.15);
+    if(y===2&&m===6&&cc===1)amt*=3.6;
+    const d=1+Math.floor(R()*28);const lead=Math.max(1,Math.round(Math.exp(Math.log(8)+gs()*.55))+(R()<.07?18+Math.floor(R()*30):0)+(cc===1?3:0));
+    seq[y]++;const oc='OC-'+(23+y)+'-'+String(seq[y]).padStart(5,'0');const an=R()<.012;
+    recs.push({oc,mi,y:2023+y,m,d,s:s.i,cc,bu:CCS[cc].bu,t:an?2:0,sign:an?0:1,amt,lead});
+    if(!an&&R()<s.dev)recs.push({oc,mi,y:2023+y,m,d:Math.min(28,d+Math.floor(R()*5)),s:s.i,cc,bu:CCS[cc].bu,t:1,sign:-1,amt:amt*(.15+.6*R()),lead:null});}}}
+ return {sups,recs};
+}
+const fm=v=>{const a=Math.abs(v),s=v<0?'−':'';if(a>=1e6)return s+'S/ '+(a/1e6).toFixed(2)+' M';if(a>=1e3)return s+'S/ '+Math.round(a/1e3)+' K';return s+'S/ '+Math.round(a)};
+const fa=v=>v>=1e6?'S/ '+(v/1e6).toFixed(v%1e6?1:0)+' M':v>=1e3?'S/ '+Math.round(v/1e3)+' K':'S/ '+Math.round(v);
+const pc=(v,d=1)=>(v*100).toFixed(d)+'%';
+const vt=v=>v==null||!isFinite(v)?'—':(v>=0?'▲ +':'▼ −')+Math.abs(v*100).toFixed(1)+'%';
+const vcol=v=>v==null||!isFinite(v)?C.ink2:(v>=0?C.up:C.down);
+const ni=v=>v.toLocaleString('es-PE');
+const nice=v=>{if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v))),n=v/p;return(n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p};
+const pth=p=>p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1)).join('');
+const T=(x,y,s,o={})=>H('text',{x,y,fontSize:o.fs||10,fill:o.c||C.ink2,textAnchor:o.a||'start',fontWeight:o.fw||400,fontFamily:'Barlow, sans-serif',style:{pointerEvents:'none'}},s);
+const svg=(w,h,k)=>H('svg',{width:w,height:h,viewBox:`0 0 ${w} ${h}`,style:{display:'block',overflow:'visible'}},...k.flat(3).filter(Boolean));
+const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>{const A=hx(a),B=hx(b);return'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')'};
+const sum=a=>a.reduce((t,r)=>t+r.amt*r.sign,0);
+
+function chLine(w,h,series,o){
+ const L=46,R=o.R??64,Tp=10,B=20,n=o.n,all=series.flatMap(s=>s.v.filter(v=>v!=null));
+ const mx=nice(Math.max(1,...all)),ph=h-Tp-B,x=i=>L+i*(w-L-R)/(n-1),y=v=>Tp+ph*(1-v/mx),k=[];
+ for(let i=0;i<=4;i++){const v=mx*i/4,yy=y(v);k.push(H('line',{x1:L,x2:w-R+10,y1:yy,y2:yy,stroke:i?C.grid:C.line}),T(L-6,yy+3,fa(v),{a:'end',fs:9}))}
+ o.labels.forEach((l,i)=>{if(l)k.push(T(x(i),h-5,l,{a:'middle',fs:9}))});
+ if(o.pre)k.push(o.pre(x,y));
+ series.forEach(s=>{const p=s.v.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);if(!p.length)return;
+  k.push(H('path',{d:pth(p),fill:'none',stroke:s.c,strokeWidth:s.lw||2,strokeLinejoin:'round',strokeLinecap:'round'}));
+  const q=p[p.length-1];if(s.dot)k.push(H('circle',{cx:q[0],cy:q[1],r:3.5,fill:s.c}));
+  if(s.label)k.push(T(q[0]+8,q[1]+(s.dy||0)-1,s.label,{c:s.tc||s.c,fw:700,fs:11}));
+  if(s.vl)k.push(T(q[0]+8,q[1]+(s.dy||0)+12,s.vl,{c:s.tc||s.c,fs:10}))});
+ if(o.post)k.push(o.post(x,y));
+ return svg(w,h,k)}
+
+function chBars(w,h,items,o){
+ const lw=o.lw||150,vw=o.vw||64,n=Math.max(items.length,1),rh=Math.min(o.maxRow||34,h/n),bh=Math.max(6,Math.min(18,rh*.56)),mx=Math.max(...items.map(i=>i.v),1),bw=w-lw-vw;
+ return svg(w,h,items.map((it,i)=>{const y0=i*rh,len=Math.max(1,bw*it.v/mx);
+  return H('g',{key:i,onContextMenu:it.drill?e=>o.onCtx(e,it.drill):undefined,style:{cursor:it.drill?'context-menu':'default'}},
+   H('rect',{x:0,y:y0,width:w,height:rh,fill:'transparent'}),
+   T(0,y0+rh/2+(it.sub?-1:4),it.l,{fs:11,c:C.ink,fw:500}),
+   it.sub?T(0,y0+rh/2+11,it.sub,{fs:9.5,c:it.subc||C.ink3,fw:600}):null,
+   H('rect',{x:lw,y:y0+(rh-bh)/2,width:len,height:bh,fill:it.c}),
+   T(lw+len+6,y0+rh/2+4,it.vl,{fs:10.5,c:C.ink,fw:600}))}))}
+
+function chPareto(w,h,vals,cls,n80){
+ const L=46,R=34,Tp=8,B=18,n=Math.max(vals.length,1),tot=vals.reduce((a,b)=>a+b,0)||1,mx=nice(vals[0]||1),pw=w-L-R,bw=pw/n,ph=h-Tp-B;
+ const y=v=>Tp+ph*(1-v/mx),yp=p=>Tp+ph*(1-p),k=[];
+ for(let i=0;i<=4;i++){const v=mx*i/4;k.push(H('line',{x1:L,x2:w-R,y1:y(v),y2:y(v),stroke:i?C.grid:C.line}),T(L-6,y(v)+3,fa(v),{a:'end',fs:9}))}
+ [0,.5,.8,1].forEach(p=>k.push(T(w-R+6,yp(p)+3,pc(p,0),{fs:9})));
+ const col={A:C.pri,B:C.sec,C:C.gray};
+ vals.forEach((v,i)=>k.push(H('rect',{x:L+i*bw,y:y(v),width:Math.max(.6,bw-(bw>3?1:0)),height:Math.max(0,Tp+ph-y(v)),fill:col[cls[i]]})));
+ let c=0;const pts=vals.map((v,i)=>{c+=v;return[L+(i+1)*bw,yp(c/tot)]});pts.unshift([L,yp(0)]);
+ k.push(H('line',{x1:L,x2:w-R,y1:yp(.8),y2:yp(.8),stroke:C.ink3,strokeDasharray:'4 3'}));
+ k.push(H('path',{d:pth(pts),fill:'none',stroke:C.ink,strokeWidth:1.5}));
+ const xm=L+n80*bw;k.push(H('circle',{cx:xm,cy:pts[n80]?pts[n80][1]:yp(.8),r:3.5,fill:C.ink}),T(xm+8,yp(.8)+14,`80% del gasto con ${n80} proveedores`,{fs:10.5,fw:600,c:C.ink}));
+ k.push(T(L,h-4,`${n} proveedores ordenados de mayor a menor gasto →`,{fs:9}));
+ return svg(w,h,k)}
+
+function chScatter(w,h,pts,onCtx){
+ const L=46,R=8,Tp=8,B=22,pw=w-L-R,ph=h-Tp-B;
+ const xmx=Math.pow(10,Math.ceil(Math.log10(Math.max(2,...pts.map(p=>p.x))))),ys=pts.map(p=>p.y).filter(v=>v>0);
+ const y0=Math.pow(10,Math.floor(Math.log10(Math.max(1,Math.min(...ys))))),y1=Math.pow(10,Math.ceil(Math.log10(Math.max(...ys))));
+ const lx=v=>L+Math.log10(v)/Math.log10(xmx)*pw,ly=v=>Tp+ph*(1-(Math.log10(v)-Math.log10(y0))/(Math.log10(y1)-Math.log10(y0))),k=[];
+ for(let v=y0;v<=y1;v*=10)k.push(H('line',{x1:L,x2:w-R,y1:ly(v),y2:ly(v),stroke:C.grid}),T(L-6,ly(v)+3,fa(v),{a:'end',fs:9}));
+ for(let v=1;v<=xmx;v*=10)k.push(T(lx(v),h-8,String(v),{a:'middle',fs:9}));
+ k.push(T((lx(10)+lx(xmx))/2,h-8,'Nº de OCs (escala log.) →',{a:'middle',fs:9}));
+ const col={E:C.pri,T:C.sec,L:C.gray};
+ [...pts].reverse().forEach((p,i)=>k.push(H('circle',{key:i,cx:lx(p.x),cy:ly(Math.max(p.y,y0)),r:2+p.r*1.1,fill:col[p.seg],fillOpacity:.75,stroke:'#FFFFFF',strokeWidth:.6,onContextMenu:e=>onCtx(e,p.drill),style:{cursor:'context-menu'}})));
+ const cnt=s=>pts.filter(p=>p.seg===s).length;
+ k.push(T(L+6,Tp+10,`Estratégicos · ${cnt('E')} →`,{fs:10.5,fw:700,c:C.pri}),T(w-R,Tp+ph-6,`Transaccionales · ${cnt('T')}`,{a:'end',fs:10.5,fw:700,c:C.secTx}),T(L+6,Tp+ph-6,`Cola larga · ${cnt('L')}`,{fs:10.5,fw:700,c:C.ink3}));
+ return svg(w,h,k)}
+
+function chStack(w,h,ys){
+ const L=4,R=74,Tp=14,B=18,cw=(w-L-R)/ys.length,bw=cw*.58,mx=nice(Math.max(...ys.map(d=>d.n+d.r),1)),ph=h-Tp-B,sc=v=>ph*v/mx,k=[];
+ k.push(H('line',{x1:L,x2:w-R,y1:Tp+ph,y2:Tp+ph,stroke:C.line}));
+ ys.forEach((d,i)=>{const x=L+i*cw+(cw-bw)/2,hr=sc(d.r),hn=sc(d.n),yb=Tp+ph;
+  k.push(H('rect',{x,y:yb-hr,width:bw,height:hr,fill:C.sec}),H('rect',{x,y:yb-hr-hn,width:bw,height:hn,fill:C.pri}));
+  if(hr>14)k.push(T(x+bw/2,yb-hr/2+4,String(d.r),{a:'middle',fs:10,c:C.ink,fw:600}));
+  if(hn>14)k.push(T(x+bw/2,yb-hr-hn/2+4,String(d.n),{a:'middle',fs:10,c:'#FFFFFF',fw:600}));
+  else k.push(T(x+bw/2,yb-hr-hn-4,String(d.n),{a:'middle',fs:10,c:C.pri,fw:600}));
+  k.push(T(x+bw/2,h-4,d.l,{a:'middle',fs:9.5,c:C.ink2}));
+  if(i===ys.length-1){k.push(T(x+bw+8,yb-hr/2+4,'Recurrentes',{fs:10.5,fw:700,c:C.secTx}),T(x+bw+8,yb-hr-Math.max(hn,10)/2+4,'Nuevos',{fs:10.5,fw:700,c:C.pri}))}});
+ return svg(w,h,k)}
+
+function chMom(w,h,items){
+ const n=Math.max(items.length,1),cw=w/n,bw=cw*.62,ph=h-12,mid=ph/2,mx=Math.max(...items.map(i=>Math.abs(i.v)),.01),k=[];
+ k.push(H('line',{x1:0,x2:w,y1:mid,y2:mid,stroke:C.line}));
+ items.forEach((it,i)=>{const bh=Math.abs(it.v)/mx*(mid-2),x=i*cw+(cw-bw)/2;
+  k.push(H('rect',{x,y:it.v>=0?mid-bh:mid,width:bw,height:Math.max(1,bh),fill:it.v>=0?C.up:C.down}),T(x+bw/2,h-1,it.l,{a:'middle',fs:8.5,c:C.ink3}))});
+ return svg(w,h,k)}
+
+function chHeat(w,h,grid,years,onCtx){
+ const lw=30,hh=16,cw=(w-lw)/years.length,rh=(h-hh)/12,vals=grid.flat().filter(v=>v!=null),mn=Math.min(...vals),mx=Math.max(...vals),k=[];
+ years.forEach((y,j)=>k.push(T(lw+j*cw+cw/2,11,String(y),{a:'middle',fs:10,fw:600,c:C.ink})));
+ grid.forEach((row,m)=>{k.push(T(0,hh+m*rh+rh/2+3.5,MES[m],{fs:9.5}));
+  row.forEach((v,j)=>{const x=lw+j*cw,y=hh+m*rh;
+   if(v==null){k.push(H('rect',{x:x+1,y:y+1,width:cw-2,height:rh-2,fill:'#F6F7F8'}),T(x+cw/2,y+rh/2+3.5,'—',{a:'middle',fs:9,c:C.ink3}));return}
+   const t=(v-mn)/((mx-mn)||1);
+   k.push(H('g',{key:m+'-'+j,onContextMenu:e=>onCtx(e,{k:'month',y:years[j],m,l:MES[m]+'-'+String(years[j]).slice(2)}),style:{cursor:'context-menu'}},
+    H('rect',{x:x+1,y:y+1,width:cw-2,height:rh-2,fill:mix('#EAF0F6','#1F3C5C',t)}),
+    T(x+cw/2,y+rh/2+3.5,(v/1e6).toFixed(2),{a:'middle',fs:9.5,c:t>.5?'#FFFFFF':C.ink,fw:500})))})});
+ return svg(w,h,k)}
+
+function chSM(w,h,ser){
+ const gap=16,pw=(w-2*gap)/3,Tp=18,B=14,ph=h-Tp-B,mx=nice(Math.max(1,...ser.flatMap(s=>s.v))),k=[];
+ ser.forEach((s,j)=>{const x0=j*(pw+gap),n=s.v.length,x=i=>x0+i*(pw-40)/(n-1),y=v=>Tp+ph*(1-v/mx);
+  k.push(T(x0,10,s.n,{fs:11,fw:700,c:s.c}),H('line',{x1:x0,x2:x0+pw-40,y1:Tp+ph,y2:Tp+ph,stroke:C.line}));
+  const p=s.v.map((v,i)=>[x(i),y(v)]);k.push(H('path',{d:pth(p),fill:'none',stroke:s.c,strokeWidth:1.6,strokeLinejoin:'round'}));
+  const q=p[p.length-1];k.push(H('circle',{cx:q[0],cy:q[1],r:2.5,fill:s.c}),T(q[0]+5,q[1]+3.5,fa(s.v[n-1]),{fs:9.5,fw:600,c:C.ink}));
+  k.push(T(x0,h-2,'ene-23',{fs:8.5}),T(x0+pw-40,h-2,'ago-26',{fs:8.5,a:'end'}))});
+ return svg(w,h,k)}
+
+function chWF(w,h,steps){
+ const Tp=16,B=18,n=steps.length,cw=w/n,bw=cw*.6,lv=[];let run=0;
+ steps.forEach(s=>{if(s.kind==='total'){lv.push([0,s.v]);run=s.v}else{lv.push([run,run+s.v]);run+=s.v}});
+ const lo=Math.min(...lv.flat().filter((v,i)=>true))*1,mnT=Math.min(...steps.filter(s=>s.kind==='total').map(s=>s.v));
+ const base=nice(mnT*.6)>mnT*.9?mnT*.8:nice(mnT*.6),hi=Math.max(...lv.flat()),ph=h-Tp-B,y=v=>Tp+ph*(1-(v-base)/((hi-base)||1)),k=[];
+ k.push(H('line',{x1:0,x2:w,y1:Tp+ph,y2:Tp+ph,stroke:C.line}));
+ steps.forEach((s,i)=>{const x=i*cw+(cw-bw)/2,[a,b]=lv[i],top=y(Math.max(a,b)),bot=s.kind==='total'?Tp+ph:y(Math.min(a,b));
+  const fill=s.kind==='total'?(i===0?C.gray:C.pri):(s.v>=0?C.up:C.down);
+  k.push(H('rect',{x,y:top,width:bw,height:Math.max(1,bot-top),fill}));
+  if(i<n-1)k.push(H('line',{x1:x+bw,x2:x+cw+(cw-bw)/2,y1:y(lv[i][1]),y2:y(lv[i][1]),stroke:C.ink3,strokeDasharray:'2 2'}));
+  const lab=s.kind==='total'?fm(s.v):(s.v>=0?'▲ +':'▼ ')+fm(s.v).replace('S/ ','');
+  k.push(T(x+bw/2,top-4,lab,{a:'middle',fs:9.5,fw:600,c:s.kind==='total'?C.ink:(s.v>=0?C.up:C.down)}),T(x+bw/2,h-3,s.l,{a:'middle',fs:9.5,c:C.ink2}))});
+ return {el:svg(w,h,k),base}}
+
+function chHist(w,h,bins){
+ const Tp=18,B=20,n=bins.length,cw=w/n,bw=cw*.7,tot=bins.reduce((a,b)=>a+b.n,0)||1,mx=Math.max(...bins.map(b=>b.n),1),ph=h-Tp-B,k=[];
+ k.push(H('line',{x1:0,x2:w,y1:Tp+ph,y2:Tp+ph,stroke:C.line}));
+ bins.forEach((b,i)=>{const bh=ph*b.n/mx,x=i*cw+(cw-bw)/2,al=i===n-1;
+  k.push(H('rect',{x,y:Tp+ph-bh,width:bw,height:bh,fill:al?C.alert:C.pri}),T(x+bw/2,Tp+ph-bh-5,ni(b.n)+' · '+pc(b.n/tot,0),{a:'middle',fs:10,fw:600,c:al?C.alertTx:C.ink}),T(x+bw/2,h-4,b.l,{a:'middle',fs:10,c:C.ink2}))});
+ return svg(w,h,k)}
+
+class Component extends DCLogic {
+ state={page:1,year:2026,bu:-1,cc:-1,sup:-1,drill:null,sort:'fecha',scale:1,ctx:null,copied:false};
+ wrapRef=React.createRef();canvasRef=React.createRef();
+ constructor(p){super(p);if(!DATA)DATA=buildData();try{const s=localStorage.getItem('compras-dc-page');if(s!=null)this.state.page=+s}catch(e){}}
+ componentDidMount(){this.ro=new ResizeObserver(()=>this.measure());this.observe()}
+ componentDidUpdate(){this.observe()}
+ componentWillUnmount(){this.ro&&this.ro.disconnect()}
+ observe(){const el=this.wrapRef.current;if(el&&el!==this._obs){this._obs=el;this.ro.observe(el);this.measure()}}
+ measure(){const el=this.wrapRef.current;if(!el)return;const s=Math.min(1,el.clientWidth/1280);if(Math.abs(s-this.state.scale)>.002)this.setState({scale:s})}
+ go(p){this.setState({page:p,ctx:null});try{localStorage.setItem('compras-dc-page',String(p))}catch(e){}if(window.scrollTo)window.scrollTo(0,0)}
+ onCtx=(e,drill)=>{e.preventDefault();e.stopPropagation();const r=this.canvasRef.current.getBoundingClientRect(),s=this.state.scale;
+  this.setState({ctx:{x:Math.min(1100,(e.clientX-r.left)/s),y:Math.min(640,(e.clientY-r.top)/s),drill,from:this.state.page}})};
+
+ findings(){
+  if(this._f)return this._f;const {sups,recs}=DATA;
+  const cur=recs.filter(r=>r.y===2026&&r.m<=7),bs=new Map();cur.forEach(r=>bs.set(r.s,(bs.get(r.s)||0)+r.amt*r.sign));
+  const rk=[...bs.entries()].filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]),tot=rk.reduce((t,e)=>t+e[1],0);let c=0,n80=0;rk.forEach((e,i)=>{if(c<.8*tot)n80=i+1;c+=e[1]});
+  const act=new Set(cur.filter(r=>r.sign===1).map(r=>r.s)).size,top=sups[rk[0][0]].name,ts=rk[0][1]/tot;
+  const mo=new Array(44).fill(0),mc=CCS.map(()=>new Array(44).fill(0));recs.forEach(r=>{mo[r.mi]+=r.amt*r.sign;mc[r.cc][r.mi]+=r.amt*r.sign});
+  let ai=3,av=0;for(let i=3;i<44;i++){const v=mo[i]/((mo[i-1]+mo[i-2]+mo[i-3])/3)-1;if(v>av){av=v;ai=i}}
+  let bc=0,bd=-1e18;CCS.forEach((_,j)=>{const d=mc[j][ai]-(mc[j][ai-1]+mc[j][ai-2]+mc[j][ai-3])/3;if(d>bd){bd=d;bc=j}});
+  const ins=cur.filter(r=>r.sign===1),sm=ins.filter(r=>r.amt<500),g=ins.reduce((t,r)=>t+r.amt,0);
+  const lab=MES[ai%12]+'-'+String(2023+Math.floor(ai/12)).slice(2);
+  this._f=[
+   {n:'01',h:`${n80} de ${act} proveedores concentran el 80% del gasto de 2026; el principal, ${top}, pesa ${pc(ts)}.`,r:ts>.25?`Negociar acuerdos marco con los proveedores clase A y homologar una alternativa para ${top}, que supera el umbral de dependencia de 25%.`:'Negociar acuerdos marco con los proveedores clase A, que concentran la mayor parte del gasto.',link:'Ver en Proveedores →',go:()=>this.go(2)},
+   {n:'02',h:`${lab[0].toUpperCase()+lab.slice(1)} cerró en ${fm(mo[ai])}, ${pc(av,0)} sobre el promedio de los 3 meses previos. Lo explica ${CCS[bc].id} ${CCS[bc].n}.`,r:'Planificar la parada de planta con compras anticipadas y presupuestarla como gasto recurrente de ese mes, no como desvío.',link:'Ver en Tendencia →',go:()=>this.go(3)},
+   {n:'03',h:`${ni(sm.length)} OCs de 2026 (${pc(sm.length/ins.length,0)} del total) están por debajo de S/ 500 y suman solo ${pc(sm.reduce((t,r)=>t+r.amt,0)/g)} del gasto.`,r:'Consolidar la cola larga en catálogos o acuerdos por familia para bajar el costo administrativo por orden.',link:'Ver en Detalle de OCs →',go:()=>this.go(4)}];
+  return this._f}
+
+ compute(){
+  const st=this.state,pr=this.props,umbral=pr.umbralOC??500,meta=pr.metaDias??15,dep=(pr.umbralDependencia??25)/100,fechas=pr.tieneFechas??true;
+  const key=[st.year,st.bu,st.cc,st.sup,JSON.stringify(st.drill),st.sort,umbral,meta,dep,fechas,st.page].join('|');
+  if(this._key===key)return this._val;
+  const {sups,recs}=DATA,Y=st.year,yi=Y-2023,lm=Y===2026?7:11,hasPrev=Y>2023,onCtx=this.onCtx;
+  const F=recs.filter(r=>(st.bu<0||r.bu===st.bu)&&(st.cc<0||r.cc===st.cc)&&(st.sup<0||r.s===st.sup));
+  const monthly=new Array(44).fill(0),mBU=[0,1,2].map(()=>new Array(44).fill(0));
+  F.forEach(r=>{const v=r.amt*r.sign;monthly[r.mi]+=v;mBU[r.bu][r.mi]+=v});
+  const cur=F.filter(r=>r.y===Y&&r.m<=lm),prev=hasPrev?F.filter(r=>r.y===Y-1&&r.m<=lm):[];
+  const g=sum(cur),gA=sum(prev),vA=hasPrev&&gA?(g-gA)/gA:null;
+  const bySup=new Map(),ocBy=new Map(),ccBy=new Map(),ocs=new Set();
+  cur.forEach(r=>{bySup.set(r.s,(bySup.get(r.s)||0)+r.amt*r.sign);if(r.sign===1){ocs.add(r.oc);ocBy.set(r.s,(ocBy.get(r.s)||0)+1);if(!ccBy.has(r.s))ccBy.set(r.s,new Set());ccBy.get(r.s).add(r.cc)}});
+  const active=ocBy.size,activePrev=new Set(prev.filter(r=>r.sign===1).map(r=>r.s)).size;
+  const ranked=[...bySup.entries()].filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]),tot=ranked.reduce((t,e)=>t+e[1],0)||1;
+  let cu=0,n80=0;const cls=ranked.map(([s,v],i)=>{const b=cu;cu+=v;const c=b<.8*tot?'A':b<.95*tot?'B':'C';if(c==='A')n80=i+1;return c});
+  const yLabel=Y===2026?'2026 (ene–ago)':String(Y),aaLabel=Y===2026?`ene–ago ${Y-1}`:String(Y-1);
+  const top1=ranked[0],t1s=top1?top1[1]/tot:0;
+
+  const curM=MES.map((_,m)=>m<=lm?monthly[yi*12+m]:null),prevM=hasPrev?MES.map((_,m)=>monthly[(yi-1)*12+m]):null;
+  const sameEnd=lm===11,cHigher=prevM?curM[lm]>=prevM[11]:true;
+  const lineSeries=[prevM&&{v:prevM,c:C.gray,tc:C.ink3,lw:2,label:String(Y-1),vl:fm(prevM[11]),dy:sameEnd?(cHigher?14:-12):0},{v:curM,c:C.pri,lw:2.8,dot:true,label:String(Y),vl:fm(curM[lm]),dy:sameEnd&&prevM?(cHigher?-12:14):0}].filter(Boolean);
+  const buS=[0,1,2].map(b=>sum(cur.filter(r=>r.bu===b))),buP=[0,1,2].map(b=>sum(prev.filter(r=>r.bu===b)));
+  const topBu=buS.indexOf(Math.max(...buS));
+  const ccItems=CCS.map((c,i)=>({l:c.id+' '+c.n,sub:BUS[c.bu].n,subc:BUS[c.bu].c,v:sum(cur.filter(r=>r.cc===i)),c:BUS[c.bu].c,drill:{k:'cc',v:i,l:c.id+' '+c.n}})).filter(i=>i.v>0).sort((a,b)=>b.v-a.v).map(i=>({...i,vl:fm(i.v)}));
+  const p1={yLabel,g:fm(g),vt:vt(vA),vc:vcol(vA),aaTxt:hasPrev?`vs ${aaLabel}: ${fm(gA)}`:'Sin año anterior en los datos',
+   active:ni(active),activeSub:hasPrev?`${aaLabel}: ${ni(activePrev)}`:'con al menos una OC',
+   top10:pc(ranked.slice(0,10).reduce((t,e)=>t+e[1],0)/tot),top10Sub:`de ${ni(ranked.length)} proveedores con gasto`,
+   ticket:fm(ocs.size?g/ocs.size:0),ticketSub:`${ni(ocs.size)} OCs en el periodo`,
+   lineTitle:vA==null?`Gasto mensual ${Y}`:`A ${MES[lm]} ${Y} el gasto va ${vA>=0?'+':'−'}${Math.abs(vA*100).toFixed(1)}% frente a ${Y-1}`,
+   lineChart:chLine(694,416,lineSeries,{n:12,labels:MES}),
+   ccTitle:g>0?`${BUS[topBu].n} concentra el ${pc(buS[topBu]/g,0)} del gasto`:'Gasto por centro de costo',
+   ccChart:chBars(454,416,ccItems,{lw:190,vw:70,maxRow:46,onCtx})};
+
+  const sup15=ranked.slice(0,15).map(([s,v],i)=>({l:sups[s].name,v,vl:fm(v)+' · '+pc(v/tot),c:i===0&&t1s>dep?C.alert:(cls[i]==='A'?C.pri:C.sec),drill:{k:'sup',v:s,l:sups[s].name}}));
+  const tThr=lm+1;
+  const pts=ranked.map(([s,v],i)=>({x:ocBy.get(s)||1,y:v,r:(ccBy.get(s)||new Set()).size,seg:cls[i]==='A'?'E':((ocBy.get(s)||0)>=tThr?'T':'L'),drill:{k:'sup',v:s,l:sups[s].name}}));
+  const stack=[0,1,2,3].map(y=>{const ml=y===3?7:11,set=new Set(F.filter(r=>r.y===2023+y&&r.m<=ml&&r.sign===1).map(r=>r.s));let n=0;set.forEach(s=>{const f=sups[s].first;if(f>=y*12&&f<y*12+12)n++});return{l:y===3?'2026*':String(2023+y),n,r:set.size-n}});
+  const nNew=stack[yi].n,nNewP=yi>0?stack[yi-1].n:null;
+  const p2={n80:`${n80} de ${ni(active)}`,top1:pc(t1s),top1Name:top1?sups[top1[0]].name:'—',
+   depBg:t1s>dep?'#FBF1E3':'#FFFFFF',depBd:t1s>dep?C.alert:'#DCDFE3',depC:t1s>dep?C.alertTx:C.ink,depTxt:t1s>dep?`▲ Sobre el umbral de ${pc(dep,0)}: riesgo de dependencia`:`Bajo el umbral de ${pc(dep,0)}`,
+   nNew:ni(nNew),nNewSub:nNewP==null?'primera compra en el periodo':`${yi===3?'2025 completo':Y-1}: ${nNewP}`,
+   paretoTitle:`${n80} proveedores concentran el 80% del gasto`,pareto:chPareto(694,160,ranked.map(e=>e[1]),cls,n80),
+   scatterTitle:`${pts.filter(p=>p.seg==='L').length} proveedores son cola larga`,scatter:chScatter(366,160,pts,onCtx),
+   stackTitle:`${nNew} proveedores nuevos en ${Y}`,stack:chStack(278,160,stack),
+   topTitle:top1?`${sups[top1[0]].name} pesa ${pc(t1s)} del gasto`:'Sin gasto',top15:chBars(454,416,sup15,{lw:92,vw:104,maxRow:28,onCtx})};
+
+  const L=yi*12+lm,mom=L>0&&monthly[L-1]?(monthly[L]-monthly[L-1])/monthly[L-1]:null;
+  const lab=i=>MES[i%12]+'-'+String(2023+Math.floor(i/12)).slice(2);
+  const momItems=[];for(let i=Math.max(1,L-11);i<=L;i++)momItems.push({l:MES[i%12][0].toUpperCase(),v:monthly[i-1]?(monthly[i]-monthly[i-1])/monthly[i-1]:0});
+  const ma=monthly.map((v,i)=>i>=2?(monthly[i]+monthly[i-1]+monthly[i-2])/3:null);
+  let ai=3,av=-1;for(let i=3;i<44;i++){const b=(monthly[i-1]+monthly[i-2]+monthly[i-3])/3;const v=b?monthly[i]/b-1:0;if(v>av){av=v;ai=i}}
+  const maHigher=ma[43]>=monthly[43];
+  const trend=chLine(694,200,[{v:monthly,c:C.sec,tc:C.secTx,lw:1.4,label:'Mensual',dy:maHigher?14:-12},{v:ma,c:C.pri,lw:2.6,label:'Prom. móvil 3M',dy:maHigher?-12:14}],{n:44,R:84,labels:monthly.map((_,i)=>i%12===0?'ene '+(23+i/12):(i%3===0?MES[i%12]:'')),
+   pre:(x,y)=>[12,24,36].map(i=>H('line',{key:i,x1:x(i),x2:x(i),y1:6,y2:180,stroke:C.line,strokeDasharray:'2 3'})),
+   post:(x,y)=>[H('circle',{key:'a',cx:x(ai),cy:y(monthly[ai]),r:6,fill:'none',stroke:C.alert,strokeWidth:2}),T(x(ai)+(ai>36?-10:10),y(monthly[ai])+4,`${lab(ai)} · +${pc(av,0)}`,{fs:10.5,fw:700,c:C.alertTx,a:ai>36?'end':'start'})]});
+  const years=[2023,2024,2025,2026],grid=MES.map((_,m)=>years.map((y,j)=>j*12+m<=43?monthly[j*12+m]:null));
+  const avgM=MES.map((_,m)=>(grid[m][0]+grid[m][1]+grid[m][2])/3),ord=avgM.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]);
+  const cap=s=>s[0].toUpperCase()+s.slice(1),mName=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const cumA=a=>{let c=0;return a.map(v=>v==null?null:(c+=v))};
+  const cumC=cumA(curM),cumP=prevM?cumA(prevM):null;
+  const buVar=[0,1,2].map(b=>buP[b]?(buS[b]-buP[b])/buP[b]:null),fastest=buVar.indexOf(Math.max(...buVar.map(v=>v??-9)));
+  let wf=null,wfTitle='Sin año anterior para comparar',wfSub='';
+  if(hasPrev){const d=[0,1,2].map(b=>buS[b]-buP[b]),mxd=d.map(Math.abs).indexOf(Math.max(...d.map(Math.abs)));
+   const r=chWF(318,120,[{l:String(Y-1),v:gA,kind:'total'},{l:'Manuf.',v:d[0]},{l:'Distrib.',v:d[1]},{l:'Serv.',v:d[2]},{l:String(Y),v:g,kind:'total'}]);
+   wf=r.el;wfTitle=`${BUS[mxd].n} explica ${d[mxd]>=0?'+':''}${fm(d[mxd])} de la variación`;wfSub=`Variación anual por unidad · eje desde ${fa(r.base)}`}
+  const p3={mom:vt(mom),momC:vcol(mom),momSub:L>0?`${lab(L)} vs ${lab(L-1)} · último mes cerrado`:'—',yoySub:hasPrev?`${yLabel} vs ${aaLabel}`:'Sin año anterior',
+   momBars:chMom(574,50,momItems),trendTitle:`${cap(lab(ai))} se salió de lo normal: +${pc(av,0)} sobre los 3 meses previos`,trend,
+   heatTitle:`${cap(mName[ord[0][1]])} y ${mName[ord[1][1]]} son los meses de mayor gasto`,heat:chHeat(454,200,grid,years,onCtx),
+   smTitle:buVar[fastest]!=null?`${BUS[fastest].n} es la unidad que más crece (${vt(buVar[fastest])})`:'Tendencia por unidad de negocio',
+   sm:chSM(454,120,[0,1,2].map(b=>({n:BUS[b].n,c:BUS[b].c,v:mBU[b]}))),
+   cumTitle:vA==null?`Acumulado ${Y}`:`A ${MES[lm]} el acumulado va ${vA>=0?'+':'−'}${Math.abs(vA*100).toFixed(1)}% sobre ${Y-1}`,
+   cum:chLine(326,120,[cumP&&{v:cumP,c:C.gray,tc:C.ink3,lw:2,label:String(Y-1),dy:sameEnd?(cumC[lm]>=cumP[11]?12:-4):0},{v:cumC,c:C.pri,lw:2.6,dot:true,label:String(Y),dy:sameEnd&&cumP?(cumC[lm]>=cumP[11]?-4:12):0}].filter(Boolean),{n:12,R:38,labels:MES.map((m,i)=>i%2===0?m:'')}),
+   wf,wfTitle,wfSub};
+
+  const dr=st.drill;let base=dr&&dr.k==='month'?F.filter(r=>r.y===dr.y&&r.m===dr.m):cur;
+  if(dr&&dr.k==='sup')base=base.filter(r=>r.s===dr.v);if(dr&&dr.k==='cc')base=base.filter(r=>r.cc===dr.v);
+  const ins=base.filter(r=>r.sign===1),nOC=new Set(ins.map(r=>r.oc)).size,leads=ins.map(r=>r.lead).sort((a,b)=>a-b);
+  const avgL=leads.length?leads.reduce((a,b)=>a+b,0)/leads.length:0,med=leads.length?leads[Math.floor(leads.length/2)]:0,ot=leads.length?leads.filter(l=>l<=meta).length/leads.length:0;
+  const devR=base.filter(r=>r.t===1),dev=devR.reduce((t,r)=>t+r.amt,0),gross=ins.reduce((t,r)=>t+r.amt,0),sm=ins.filter(r=>r.amt<umbral);
+  const bins=[{l:'0–7 días',n:0},{l:'8–15',n:0},{l:'16–30',n:0},{l:'> 30',n:0}];leads.forEach(l=>bins[l<=7?0:l<=15?1:l<=30?2:3].n++);
+  const dBy=new Map(),gBy=new Map();devR.forEach(r=>dBy.set(r.s,(dBy.get(r.s)||0)+r.amt));ins.forEach(r=>gBy.set(r.s,(gBy.get(r.s)||0)+r.amt));
+  const devTop=[...dBy.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6).map(([s,v])=>({l:sups[s].name,v,vl:fm(v)+' · '+pc(v/(gBy.get(s)||v)),c:C.pri,drill:{k:'sup',v:s,l:sups[s].name}}));
+  const sk={fecha:(a,b)=>b.mi-a.mi||b.d-a.d,monto:(a,b)=>b.amt-a.amt,dias:(a,b)=>(b.lead??-1)-(a.lead??-1)}[st.sort];
+  const MAXR=150,sorted=[...base].sort(sk).slice(0,MAXR),slow=leads.filter(l=>l>meta).length;
+  const rows=sorted.map(r=>{const late=fechas&&r.lead!=null&&r.lead>meta,vl=fechas&&r.lead!=null&&r.lead>30;return{
+   oc:r.oc,fecha:String(r.d).padStart(2,'0')+'/'+String(r.m+1).padStart(2,'0')+'/'+r.y,prov:sups[r.s].name,cc:CCS[r.cc].id+' '+CCS[r.cc].n,
+   tipo:['Ingreso','Devolución','Anulación'][r.t],tc:r.t===1?C.up:(r.t===2?C.ink3:C.ink),tw:r.t===1?600:400,
+   monto:(r.sign<0?'−':'')+'S/ '+r.amt.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2}),mc:r.t===1?C.up:(r.t===2?C.ink3:C.ink),small:r.t===0&&r.amt<umbral,
+   dias:!fechas||r.lead==null?'—':String(r.lead),dc:late?C.alertTx:C.ink,dw:late?700:400,bg:vl?'#FBF1E3':'transparent'}});
+  const scope=dr?dr.l:yLabel;
+  const p4={nOC:ni(nOC),nMov:`${ni(base.length)} movimientos · ${scope}`,
+   lead:fechas?avgL.toFixed(1)+' días':'Fase 2',leadSub:fechas?`OC → recepción · mediana ${med} días`:'Requiere fecha de solicitud o de OC y de recepción',
+   ot:fechas?pc(ot):'Fase 2',otC:fechas&&ot<.85?C.alertTx:C.ink,otW:fechas?pc(ot):'0%',otBar:fechas&&ot<.85?C.alert:C.pri,metaW:'85%',otSub:fechas?`Meta 85% · plazo ≤ ${meta} días`:'Sin dos fechas del ciclo',
+   dev:fm(dev),devPct:pc(gross?dev/gross:0),umbral:'S/ '+ni(umbral),small:ni(sm.length),smallSub:`${pc(ins.length?sm.length/ins.length:0,0)} de las OCs · ${pc(gross?sm.reduce((t,r)=>t+r.amt,0)/gross:0)} del gasto`,
+   tableTitle:fechas?`${ni(slow)} OCs superaron el plazo de ${meta} días`:'Transacciones del periodo',
+   tableSub:`Se muestran ${Math.min(MAXR,base.length)} de ${ni(base.length)} · clic en Fecha, Monto o Días para ordenar · fondo naranja: más de 30 días`,
+   histTitle:`${pc(bins[3].n/(leads.length||1),0)} de los pedidos tarda más de 30 días`,hist:chHist(454,160,bins),
+   devTitle:devTop.length?`${devTop[0].l} concentra el mayor monto devuelto`:'Sin devoluciones en el periodo',devChart:chBars(454,160,devTop,{lw:92,vw:104,maxRow:26,onCtx}),rows};
+  this._key=key;this._val={p1,p2,p3,p4};return this._val}
+
+ renderVals(){
+  const st=this.state,pr=this.props,v=this.compute(),s=st.scale,fechas=pr.tieneFechas??true,wfOn=pr.mostrarCascada??true;
+  const tabs=[['Portada',0],['1 · Resumen ejecutivo',1],['2 · Proveedores',2],['3 · Tendencia',3],['4 · Detalle de OCs',4]].map(([l,i])=>({l,go:()=>this.go(i),c:st.page===i?'#FFFFFF':'#A9AEB4',bc:st.page===i?'#7FA3C4':'transparent'}));
+  const ccList=CCS.map((c,i)=>({v:String(i),l:c.id+' '+c.n,bu:c.bu})).filter(c=>st.bu<0||c.bu===st.bu);
+  const supList=DATA.sups.map(x=>({v:String(x.i),l:x.name})).sort((a,b)=>a.l.localeCompare(b.l));
+  const ctx=st.ctx,dr=st.drill;
+  return {...v,tabs,isCover:st.page===0,isReport:st.page>0,isP1:st.page===1,isP2:st.page===2,isP3:st.page===3,isP4:st.page===4,
+   pageTitle:['','Resumen ejecutivo','Proveedores','Tendencia','Detalle de órdenes de compra'][st.page],
+   periodNote:st.year===2026?'2026 = ene–ago, último mes cerrado':`${st.year} completo`,
+   wrapRef:this.wrapRef,canvasRef:this.canvasRef,
+   frameStyle:{position:'relative',width:1280*s+'px',height:720*s+'px',margin:'0 auto',boxShadow:'0 1px 2px rgba(29,31,32,.08), 0 8px 24px rgba(29,31,32,.08)'},
+   canvasStyle:{position:'absolute',left:0,top:0,width:'1280px',height:'720px',transform:`scale(${s})`,transformOrigin:'0 0'},
+   fYear:String(st.year),fBu:String(st.bu),fCc:String(st.cc),fSup:String(st.sup),
+   yearOpts:[2026,2025,2024,2023].map(y=>({v:String(y),l:y===2026?'2026 (YTD)':String(y)})),
+   buOpts:[{v:'-1',l:'Todas'},...BUS.map((b,i)=>({v:String(i),l:b.n}))],ccOpts:[{v:'-1',l:'Todos'},...ccList],supOpts:[{v:'-1',l:'Todos'},...supList],
+   onYear:e=>this.setState({year:+e.target.value}),
+   onBu:e=>{const b=+e.target.value;this.setState(p=>({bu:b,cc:p.cc>=0&&b>=0&&CCS[p.cc].bu!==b?-1:p.cc}))},
+   onCc:e=>this.setState({cc:+e.target.value}),onSup:e=>this.setState({sup:+e.target.value}),
+   showDrill:st.page===4&&!!dr,drillLabel:dr?dr.l:'',drillBack:()=>{const f=dr&&dr.from;this.setState({drill:null});this.go(f||1)},drillClear:()=>this.setState({drill:null}),
+   ctxOpen:!!ctx,ctxLabel:ctx?ctx.drill.l:'',ctxStyle:ctx?{position:'absolute',left:ctx.x+'px',top:ctx.y+'px',zIndex:10,background:'#FFFFFF',border:'1px solid #CDD1D6',boxShadow:'0 6px 20px rgba(29,31,32,.16)',minWidth:'170px'}:{},
+   stop:e=>e.stopPropagation(),closeCtx:()=>{if(this.state.ctx)this.setState({ctx:null})},
+   doDrill:e=>{e.stopPropagation();const c=this.state.ctx;this.setState({drill:{...c.drill,from:c.from},ctx:null});this.go(4)},
+   sortFecha:()=>this.setState({sort:'fecha'}),sortMonto:()=>this.setState({sort:'monto'}),sortDias:()=>this.setState({sort:'dias'}),
+   sortA:{fecha:st.sort==='fecha'?'↓':'',monto:st.sort==='monto'?'↓':'',dias:st.sort==='dias'?'↓':''},
+   hasDates:fechas,noDates:!fechas,showWF:wfOn,hideWF:!wfOn,
+   findings:this.findings(),goP1:()=>this.go(1),themeJson:THEME_TXT,copyLabel:st.copied?'Copiado':'Copiar JSON',
+   copyTheme:()=>{try{navigator.clipboard.writeText(THEME_TXT)}catch(e){}this.setState({copied:true});setTimeout(()=>this.setState({copied:false}),1600)},
+   downloadTheme:()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([THEME_TXT],{type:'application/json'}));a.download='tema-compras.json';a.click()}};
+ }
+}
+</script>
+</body>
+</html>
