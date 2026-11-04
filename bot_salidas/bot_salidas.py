@@ -1,5 +1,5 @@
 """
-BOT DE SALIDAS · SOFTCOM ALMOVI20 · v3.7
+BOT DE SALIDAS · SOFTCOM ALMOVI20 · v3.8
 
 Qué hace:
   1. Lee TODAS las salidas pendientes de la hoja PARTE. Una salida = un PEDIDO en el mostrador:
@@ -16,7 +16,19 @@ Uso (CMD, en Descargas):
   py -3.14 bot_salidas.py preguntar  igual, pero pregunta SI antes de grabar cada una
   py -3.14 bot_salidas.py cabecera   solo llena la cabecera de la primera y para
   py -3.14 bot_salidas.py menu       guarda el menú de SOFTCOM en el Escritorio (softcom_menu.txt)
+  py -3.14 bot_salidas.py revisar    solo muestra qué salidas registraría (no toca SOFTCOM)
 No toques mouse ni teclado mientras escribe.
+
+Cambios v3.8 (sobre v3.7):
+  - Si escribes mal el modo (ej. "preguntr") se detiene: antes grababa en AUTOMÁTICO.
+  - Apenas SOFTCOM da el N° PS, lo anota en bot_registro.txt CON las filas del Excel.
+    Si el bot se cae antes de guardar el Excel, al volver a correr lo detecta y
+    ofrece anotarlo, en vez de registrar la salida dos veces.
+  - Lee de vuelta cada campo de la cabecera y para si SOFTCOM no lo dejó igual.
+  - Si Excel está ocupado (editando una celda) reintenta en vez de caerse.
+  - Lee todas las filas del PARTE (ya no se corta en la fila 804).
+  - Avisa si la cantidad no es válida o el stock estimado queda negativo.
+  - Mensajes claros si falta un botón en un cuadro de SOFTCOM; Ctrl+C para limpio.
 """
 import os, re, sys, time, ctypes, warnings, datetime
 from ctypes import wintypes
@@ -24,7 +36,6 @@ warnings.filterwarnings("ignore")
 
 # ------------------------------------------------------------------ CONFIGURACIÓN
 RUTA_EXCEL = r"C:\Users\Logistica4\Downloads\PARTE_SALIDA_ALMACEN_v7.xlsx"
-# (toma sola la primera salida pendiente: la de menor SALIDA N° en OK)
 PREGUNTAR_ANTES_DE_GRABAR = False   # False = graba solo, sin pedir SI  ·  True = pregunta en cada salida
 PAUSA = 0.35                 # segundos tras cada tecla/campo (súbelo a 0.6 si SOFTCOM va lento)
 
@@ -78,10 +89,6 @@ def ventana_principal():
         return 0, None
     cands.sort(reverse=True)
     return cands[0][1], cands[0][2]
-
-
-def pid_softcom():
-    return ventana_principal()[1]
 
 
 PID = None
@@ -220,6 +227,17 @@ def boton(dialogo, etiqueta):
     return hallado[0] if hallado else 0
 
 
+def pulsar(dialogo, *etiquetas):
+    """Hace clic en el primer botón que exista de las etiquetas dadas; si no hay, se detiene."""
+    for e in etiquetas:
+        b = boton(dialogo, e)
+        if b:
+            HwndWrapper(b).click()
+            time.sleep(0.5)
+            return
+    raise Alto(f"En el cuadro «{mensaje()[1]}» no encontré el botón {' / '.join(etiquetas)}. Púlsalo tú.")
+
+
 def esperar(cond, seg=3.0):
     fin = time.time() + seg
     while time.time() < fin:
@@ -276,6 +294,21 @@ def sin_mensaje(donde):
 
 
 # ============================================================ EXCEL
+def com(fn, intentos=10):
+    """Ejecuta una llamada a Excel; si Excel está ocupado (editando una celda, un cuadro
+    abierto) reintenta unos segundos en vez de caerse."""
+    for k in range(intentos):
+        try:
+            return fn()
+        except Exception as e:
+            ocupado = any(x in str(e).lower() for x in ("rechaz", "reject", "-2147418111", "-2146777998", "busy", "ocupad"))
+            if not ocupado or k == intentos - 1:
+                raise
+            if k == 0:
+                print("\n   ⏸ Excel está ocupado (¿editando una celda?). Presiona Enter o Esc en Excel…", end="")
+            time.sleep(1.5)
+
+
 def abrir_libro():
     import xlwings as xw
     nombre = os.path.basename(RUTA_EXCEL).lower()
@@ -289,24 +322,23 @@ def abrir_libro():
     return xw.Book(RUTA_EXCEL)
 
 
-def leer_salidas(libro, hechas=()):
+def leer_salidas(libro, hechas=(), avisar=True):
     """Arma TODAS las salidas pendientes desde la hoja PARTE.
     Fecha / trabajador / área se toman de las columnas B, F y G (vacío = el de arriba).
-    Una salida = una FECHA + un ÁREA, en el orden en que aparecen."""
+    Una salida = filas SEGUIDAS con la misma fecha, trabajador y área (igual que la columna O)."""
     try:
-        libro.app.api.CalculateFull()
+        com(lambda: libro.app.calculate())        # solo lo que cambió (CalculateFull era lento)
     except Exception:
-        try:
-            libro.app.calculate()
-        except Exception:
-            pass
-    cfg = {r[0]: r[1] for r in libro.sheets["CONFIG"].range("A2:C9").value if r[0]}
+        pass
+    cfg = {r[0]: r[1] for r in com(lambda: libro.sheets["CONFIG"].range("A2:C9").value) if r[0]}
     ccosto = {}
-    for r in libro.sheets["CCOSTO"].range("A2:D60").value:
+    for r in com(lambda: libro.sheets["CCOSTO"].range("A2:D60").value):
         if r[0] not in (None, ""):
             cod = str(int(r[0])) if isinstance(r[0], float) and r[0].is_integer() else str(r[0]).strip()
             ccosto[cod] = (r[1], r[3])
-    parte = libro.sheets["PARTE"].range("A5:S804").value
+    hoja = libro.sheets["PARTE"]
+    ultima = max(804, com(lambda: hoja.used_range.last_cell.row))
+    parte = com(lambda: hoja.range(f"A5:S{ultima}").value)
 
     def cc_cod(v):
         if isinstance(v, float) and v.is_integer():
@@ -335,7 +367,7 @@ def leer_salidas(libro, hechas=()):
             grupos.append((clave, []))
         grupos[-1][1].append((i, f, clave[1]))
         clave_prev = clave
-    if malas:
+    if malas and avisar:
         print("Filas que NO voy a registrar (corrígelas en el Excel):")
         print("\n".join(malas)); print()
 
@@ -353,9 +385,15 @@ def leer_salidas(libro, hechas=()):
             codigo = str(f[7] or f[3] or "").strip().upper()
             if not codigo:
                 raise Alto(f"La fila {i} no tiene CÓDIGO SOFTCOM (columna H). En Excel presiona F9, guarda y vuelve a correr.")
-            cant = float(f[4])
-            lineas.append(dict(fila=i, codigo=codigo, desc=str(f[8] or ""),
-                               cant=str(int(cant)) if cant.is_integer() else str(cant)))
+            try:
+                cant = float(f[4])
+            except (TypeError, ValueError):
+                raise Alto(f"La fila {i} tiene una CANTIDAD que no es número: '{f[4]}'.")
+            if cant <= 0:
+                raise Alto(f"La fila {i} tiene CANTIDAD {f[4]} (debe ser mayor que 0).")
+            stock = f[10] if isinstance(f[10], (int, float)) else None
+            lineas.append(dict(fila=i, codigo=codigo, desc=str(f[8] or ""), stock=stock,
+                               cant=str(int(cant)) if cant.is_integer() else repr(round(cant, 4))))
         salidas.append(dict(fecha=datetime.datetime.combine(fe, datetime.time()), cc=cc, area=area, sol=sol,
                             glosa=", ".join(nombres)[:60], lineas=lineas,
                             mov=str(cfg.get("Código de movimiento", "PR")),
@@ -364,11 +402,66 @@ def leer_salidas(libro, hechas=()):
     return salidas
 
 
-def anotar_en_excel(libro, s, nro):
+def anotar_en_excel(libro, filas, nro):
     hoja = libro.sheets["PARTE"]
-    for ln in s["lineas"]:
-        hoja.range(f"P{ln['fila']}").value = nro
-    libro.save()
+    for fila in filas:
+        com(lambda: setattr(hoja.range(f"P{fila}"), "value", nro))
+    com(lambda: libro.save())
+
+
+# ============================================================ HISTORIAL (bot_registro.txt)
+REGISTRO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_registro.txt")
+
+
+def anotar_en_registro(s, nro):
+    """Se llama APENAS SOFTCOM da el número: si después falla Excel, aquí queda la prueba."""
+    linea = (f"{datetime.datetime.now():%d/%m/%Y %H:%M}\t{nro}\t{s['fecha']:%d/%m/%Y}\t{s['cc']}\t"
+             f"{s['glosa']}\t" + "; ".join(f"{l['codigo']} x{l['cant']}" for l in s['lineas'])
+             + "\tfilas=" + ",".join(str(l["fila"]) for l in s["lineas"]))
+    try:
+        with open(REGISTRO, "a", encoding="utf-8") as fh:
+            fh.write(linea + "\n")
+            fh.flush(); os.fsync(fh.fileno())
+    except Exception as e:
+        print(f"  ⚠ No pude escribir en {REGISTRO} ({e}). Anota tú: {nro}")
+
+
+def recuperar_pendientes(libro):
+    """Busca en el historial salidas que SOFTCOM ya grabó pero que no quedaron en la columna P
+    (el bot se cayó entre grabar y guardar el Excel). Así no se registran dos veces."""
+    if not os.path.exists(REGISTRO):
+        return
+    hoja = libro.sheets["PARTE"]
+    faltan = []
+    try:
+        lineas = open(REGISTRO, encoding="utf-8").read().splitlines()
+    except Exception:
+        return
+    for linea in lineas[-200:]:
+        partes = linea.split("\t")
+        if len(partes) < 7 or not partes[-1].startswith("filas="):
+            continue                                       # líneas viejas (v3.7) no traen filas
+        nro, prods = partes[1], partes[5].split("; ")
+        filas = [int(x) for x in partes[-1][6:].split(",") if x.strip().isdigit()]
+        vacias = []
+        for fila, prod in zip(filas, prods):
+            p = com(lambda: hoja.range(f"P{fila}").value)
+            h = com(lambda: hoja.range(f"H{fila}").value)
+            if p in (None, "") and str(h or "").strip().upper() == prod.split(" x")[0]:
+                vacias.append(fila)
+        if vacias:
+            faltan.append((nro, vacias, linea))
+    if not faltan:
+        return
+    print("⚠ SOFTCOM ya grabó estas salidas pero NO quedaron anotadas en la columna P:")
+    for nro, filas, _ in faltan:
+        print(f"   {nro} → filas {', '.join(map(str, filas))}")
+    resp = input("¿Las anoto yo en el Excel? SI = anotar · otra cosa = parar y revisar a mano: ").strip().upper()
+    if resp != "SI":
+        raise Alto("Revisa esas filas: escribe el N° PS en la columna P antes de volver a correr el bot.")
+    for nro, filas, _ in faltan:
+        anotar_en_excel(libro, filas, nro)
+    print("   ✔ Anotadas y Excel guardado.\n")
 
 
 # ============================================================ MENÚ Y FECHA DE SOFTCOM
@@ -476,11 +569,14 @@ def cambiar_fecha(fecha):
         raise Alto(f"No pude escribir la fecha (quedó '{texto(mask)}'). Cámbiala tú y vuelve a correr.")
     teclas("{ENTER}")
     if form("ALSELE") and not mensaje()[0]:
-        HwndWrapper(control(sel, (85, 118), "ThunderRT6CommandButton")).click(); time.sleep(0.5)
+        b = control(sel, (85, 118), "ThunderRT6CommandButton")
+        if not b:
+            raise Alto("No encontré el botón Aceptar de 'Selección Almacén y Fecha'.")
+        HwndWrapper(b).click(); time.sleep(0.5)
     dlg = esperar(lambda: (lambda m: m if m[0] else None)(mensaje()), 4)
     if dlg:
         if "guardar" in dlg[1].lower():
-            HwndWrapper(boton(dlg[0], "Sí")).click(); time.sleep(0.5)
+            pulsar(dlg[0], "Sí", "Si")
         else:
             raise Alto(f"SOFTCOM dijo: «{dlg[1]}» al cambiar la fecha.")
     if not esperar(lambda: not form("ALSELE"), 4):
@@ -488,7 +584,8 @@ def cambiar_fecha(fecha):
 
 
 RECUERDO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_menu_salida.txt")
-NO_SALIDA = ["reporte", "consulta", "listado", "anula", "kardex", "guia", "imprim", "elimin", "borra"]
+NO_SALIDA = ["reporte", "consulta", "listado", "anula", "kardex", "guia", "imprim", "elimin", "borra",
+             "proceso", "cierre", "regener", "recalcul", "actualiz", "transfer", "genera", "masiv", "import"]
 
 
 def abrir_almovi20():
@@ -529,7 +626,7 @@ def abrir_almovi20():
         for h in set(formularios()) - antes:
             try:
                 if win32gui.GetClassName(h) == "#32770":
-                    b = boton(h, "No") or boton(h, "Cancelar") or boton(h, "Aceptar")
+                    b = boton(h, "No") or boton(h, "Cancelar") or boton(h, "Salir") or boton(h, "Aceptar")
                     if b:
                         HwndWrapper(b).click()
                 else:
@@ -583,8 +680,18 @@ def avanzar_hasta(f, pos, nombre, maximo=7):
         raise Alto(f"No llegué al campo {nombre}. El cursor está en: {donde_esta_foco()}")
 
 
+def _igual(leido, valor):
+    a, b = _norm(leido).strip().upper(), _norm(str(valor)).strip().upper()
+    return a == b or (len(a) >= 20 and b.startswith(a))   # tolera que SOFTCOM corte una glosa larga
+
+
 def escribir_y_enter(f, valor, pos_siguiente, nombre):
+    campo = foco()
     teclas(esc(valor))
+    leido = texto(campo).strip() if campo else str(valor)
+    if not _igual(leido, valor):
+        raise Alto(f"En {nombre} escribí '{valor}' pero SOFTCOM muestra '{leido}'.\n"
+                   f"   (¿Bloq Mayús, teclado en otro idioma, o alguien tocó el teclado?) No grabé nada.")
     teclas("{ENTER}")
     sin_mensaje(f"después de {nombre} = {valor}")
     if not esperar(lambda: foco_en(f, pos_siguiente), 3):
@@ -660,26 +767,37 @@ def detalle(s):
     return det, nro
 
 
-def grabar(det):
+def grabar(det, nro_pantalla=""):
     HwndWrapper(det).set_focus(); time.sleep(0.4)
     teclas("%f")  # Alt+F
-    dlg = esperar(lambda: (lambda m: m if "Documento Generado" in m[1] else None)(mensaje()), 8)
+    dlg = esperar(lambda: (lambda m: m if "Documento Generado" in m[1] else None)(mensaje()), 15)
     if not dlg:
-        raise Alto(f"No apareció 'Documento Generado'. Mensaje en pantalla: {mensaje()[1] or '(ninguno)'}")
+        raise Alto(f"No apareció 'Documento Generado' (mensaje en pantalla: {mensaje()[1] or '(ninguno)'}).\n"
+                   f"   OJO: puede que SOFTCOM SÍ la haya grabado. Antes de volver a correr, revisa en SOFTCOM\n"
+                   f"   si existe el documento PS-{nro_pantalla or '…'} y, si existe, escríbelo en la columna P.")
     m = re.search(r"PS-\d+", dlg[1])
     nro = m.group(0) if m else dlg[1].replace("Documento Generado Número", "").strip()
-    HwndWrapper(boton(dlg[0], "Aceptar")).click(); time.sleep(0.6)
+    if not m:
+        print(f"  ⚠ No reconocí el número en «{dlg[1]}». Lo anoto tal cual: revisa la columna P.")
+    elif nro_pantalla and nro_pantalla.lstrip("0") and nro[3:].lstrip("0") != nro_pantalla.lstrip("0"):
+        print(f"  ⚠ La pantalla decía N° {nro_pantalla} y SOFTCOM generó {nro}. Me quedo con {nro}.")
+    pulsar(dlg[0], "Aceptar")
     imp = esperar(lambda: (lambda m: m if "Imprimir" in m[1] else None)(mensaje()), 5)
     if imp:
-        HwndWrapper(boton(imp[0], "No")).click(); time.sleep(0.6)
+        pulsar(imp[0], "No")
     return nro
 
 
 # ============================================================ PRINCIPAL
+MODOS = ("completo", "preguntar", "cabecera", "menu", "revisar")
+
+
 def main():
     global PID, TID, PRINCIPAL
     modo = (sys.argv[1].lower() if len(sys.argv) > 1 else "completo")
-    print(f"=== BOT DE SALIDAS v3.7 · modo {modo.upper()} ===\n")
+    if modo not in MODOS:
+        raise Alto(f"No conozco el modo '{modo}'. Usa uno de: {', '.join(MODOS)} (o nada = completo).")
+    print(f"=== BOT DE SALIDAS v3.8 · modo {modo.upper()} ===\n")
     PRINCIPAL, PID = ventana_principal()
     if not PID:
         raise Alto("No veo SOFTCOM abierto (ventana principal del almacén).")
@@ -697,22 +815,27 @@ def main():
         print("Menú guardado en", ruta); return
 
     libro = abrir_libro()
+    recuperar_pendientes(libro)
     salidas = leer_salidas(libro)
     if not salidas:
         raise Alto("No hay salidas pendientes (todas las filas en OK ya tienen N° DOC).")
     print(f"Salidas pendientes: {len(salidas)}")
     for k, s in enumerate(salidas, 1):
         print(f"   {k}. {s['fecha']:%d/%m} · {s['cc']:<5} {str(s['area'])[:28]:<28} · {len(s['lineas'])} productos · {s['glosa'][:35]}")
+        for ln in s["lineas"]:
+            if ln["stock"] is not None and ln["stock"] < 0:
+                print(f"        ⚠ fila {ln['fila']}: {ln['codigo']} queda con stock estimado {ln['stock']:g} (SOFTCOM podría rechazarla)")
+    if modo == "revisar":
+        print("\nModo REVISAR: no toqué SOFTCOM."); return
     print("\nNo toques mouse ni teclado mientras escribe en SOFTCOM.\n")
 
     todas_inicio = not PREGUNTAR_ANTES_DE_GRABAR and modo != "preguntar"
     if todas_inicio:
         print("Modo AUTOMÁTICO: graba cada salida sin preguntar. Para detenerlo: cierra esta ventana negra.\n")
     hechas, todas, n_ok = set(), todas_inicio, 0
-    registro = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_registro.txt")
     resumen = []
     while True:
-        pend = leer_salidas(libro, hechas)
+        pend = leer_salidas(libro, hechas, avisar=False)
         if not pend:
             break
         s = pend[0]
@@ -723,7 +846,7 @@ def main():
         if modo == "cabecera":
             print("\nCabecera lista (cursor en el botón Grabar). NO entré al detalle. Cierra ALMOVI20 con S, sin grabar.")
             return
-        det, _ = detalle(s)
+        det, nro_pantalla = detalle(s)
         if not todas:
             print("\nREVISA LA PANTALLA DE SOFTCOM.")
             resp = input("¿Grabo? SI = esta · TODAS = esta y las demás sin preguntar · otra cosa = parar: ").strip().upper()
@@ -732,20 +855,14 @@ def main():
             elif resp != "SI":
                 print("\nNo grabé. La salida quedó en pantalla: termínala o anúlala tú a mano.")
                 break
-        nro = grabar(det)
+        nro = grabar(det, nro_pantalla)
+        anotar_en_registro(s, nro)          # lo PRIMERO: si algo falla después, queda la prueba
         n_ok += 1
         hechas.update(ln["fila"] for ln in s["lineas"])
         print(f"  ✔ SOFTCOM generó {nro}")
-        linea_log = (f"{datetime.datetime.now():%d/%m/%Y %H:%M}\t{nro}\t{s['fecha']:%d/%m/%Y}\t{s['cc']}\t"
-                     f"{s['glosa']}\t" + "; ".join(f"{l['codigo']} x{l['cant']}" for l in s['lineas']))
         resumen.append(f"   {nro}  {s['fecha']:%d/%m}  {s['cc']:<5} {s['glosa'][:30]:<30} {len(s['lineas'])} prod.")
         try:
-            with open(registro, "a", encoding="utf-8") as fh:
-                fh.write(linea_log + "\n")
-        except Exception:
-            pass
-        try:
-            anotar_en_excel(libro, s, nro)
+            anotar_en_excel(libro, [ln["fila"] for ln in s["lineas"]], nro)
             print(f"  ✔ Anotado en la columna P ({len(s['lineas'])} filas) y Excel guardado.")
         except Exception as e:
             print(f"  ⚠ No pude anotarlo en el Excel ({e}). Escribe {nro} a mano en la columna P de esas filas.")
@@ -753,7 +870,7 @@ def main():
     print(f"\nListo: {n_ok} salida(s) registrada(s).")
     if resumen:
         print("\n".join(resumen))
-        print(f"\n(Historial en {registro})")
+        print(f"\n(Historial en {REGISTRO})")
 
 
 if __name__ == "__main__":
@@ -761,6 +878,8 @@ if __name__ == "__main__":
         main()
     except Alto as a:
         print(f"\n■ ME DETUVE: {a}")
+    except KeyboardInterrupt:
+        print("\n■ Detenido con Ctrl+C. Revisa SOFTCOM: la salida en pantalla NO se grabó si no viste 'SOFTCOM generó'.")
     except Exception:
         import traceback
         print("\n*** OCURRIÓ UN ERROR. Mándale a Claude una captura de esto: ***\n")
