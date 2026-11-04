@@ -1,5 +1,5 @@
 """
-BOT DE SALIDAS · SOFTCOM ALMOVI20 · v3.8
+BOT DE SALIDAS · SOFTCOM ALMOVI20 · v3.9
 
 Qué hace:
   1. Lee TODAS las salidas pendientes de la hoja PARTE. Una salida = un PEDIDO en el mostrador:
@@ -18,6 +18,16 @@ Uso (CMD, en Descargas):
   py -3.14 bot_salidas.py menu       guarda el menú de SOFTCOM en el Escritorio (softcom_menu.txt)
   py -3.14 bot_salidas.py revisar    solo muestra qué salidas registraría (no toca SOFTCOM)
 No toques mouse ni teclado mientras escribe.
+
+Cambios v3.9 (sobre v3.8):
+  - RECHAZOS: si SOFTCOM rechaza un dato (mensaje con solo "Aceptar": sin stock, código
+    inactivo…), el bot cierra el mensaje, cancela la salida a medias, escribe el motivo
+    en la columna S (OBSERVACIÓN) de esas filas y SIGUE con la siguiente salida.
+    Las filas con "RECHAZADO" en la columna S no se vuelven a intentar: borra ese texto
+    cuando lo hayas corregido.
+  - ANTI-DUPLICADOS: antes de escribir una salida en SOFTCOM la compara con el historial
+    (bot_registro.txt) y con las filas ya REGISTRADAS del Excel. Si ya hay una igual
+    (misma fecha, área, trabajador, productos y cantidades) pregunta antes de grabarla.
 
 Cambios v3.8 (sobre v3.7):
   - Si escribes mal el modo (ej. "preguntr") se detiene: antes grababa en AUTOMÁTICO.
@@ -49,6 +59,15 @@ D = {  # Detalles de Salida
     "items": (582, 83), "nro_doc": (151, 71), "col_codigo": 10, "col_cantidad": 506,
 }
 ENTERS_CODIGO_A_CANTIDAD = 3   # en tu grabación: código ⏎ ⏎ ⏎ y recién la cantidad
+
+# Rechazos y duplicados
+SEGUIR_SI_RECHAZA = True       # True = anota el motivo y sigue con la siguiente · False = se detiene
+RECHAZAR_SIN_STOCK_ESTIMADO = False   # True = ni intenta las salidas con stock estimado (columna K) negativo
+# Cómo cancelar una salida cuando "Detalles de Salida" ya está abierta. Vacío = el bot te pide
+# que la canceles tú y espera. Cuando tengamos la grabación de la cancelación, aquí van las
+# teclas, ej. ["{ESC}", "%s"]. El bot comprueba después que la pantalla quedó limpia.
+CANCELAR_DETALLE = []
+MARCAS_BLOQUEO = ("RECHAZADO", "DUPLICADO")   # texto al inicio de la columna S que hace saltar la fila
 # ---------------------------------------------------------------------------------
 
 try:
@@ -61,6 +80,13 @@ except ImportError as e:
 
 class Alto(Exception):
     """El bot se detiene a propósito, con un mensaje claro."""
+
+
+class Rechazo(Exception):
+    """SOFTCOM rechazó un dato con un aviso simple (solo botón Aceptar)."""
+    def __init__(self, motivo, dialogo, donde):
+        super().__init__(motivo)
+        self.motivo, self.dialogo, self.donde = motivo, dialogo, donde
 
 
 # ============================================================ SOFTCOM: ventanas y foco
@@ -287,10 +313,27 @@ def teclas(s):
     time.sleep(PAUSA)
 
 
+def botones(dialogo):
+    res = []
+    def cb(c, _):
+        if win32gui.GetClassName(c) == "Button" and win32gui.IsWindowVisible(c):
+            res.append(texto(c).replace("&", "").strip().lower())
+        return True
+    win32gui.EnumChildWindows(dialogo, cb, None)
+    return res
+
+
 def sin_mensaje(donde):
+    """Si SOFTCOM mostró un aviso: si es un aviso simple (solo Aceptar/OK) es un RECHAZO del dato;
+    si es una pregunta (Sí/No…) el bot no adivina la respuesta y se detiene."""
     h, t = mensaje()
-    if h:
-        raise Alto(f"SOFTCOM mostró un mensaje {donde}:\n      «{t}»\n   Ciérralo y revisa ese dato.")
+    if not h:
+        return
+    bs = botones(h)
+    if bs and all(b in ("aceptar", "ok") for b in bs):
+        raise Rechazo(t, h, donde)
+    raise Alto(f"SOFTCOM preguntó algo {donde}:\n      «{t}»  (botones: {', '.join(bs) or '?'})\n"
+               f"   Respóndelo tú y revisa ese dato.")
 
 
 # ============================================================ EXCEL
@@ -322,6 +365,23 @@ def abrir_libro():
     return xw.Book(RUTA_EXCEL)
 
 
+def fmt_cant(v):
+    c = float(v)
+    return str(int(c)) if c.is_integer() else repr(round(c, 4))
+
+
+def firma(fecha, cc, trab, lineas):
+    """Huella de una salida para reconocer duplicados: fecha + área + trabajador + productos."""
+    try:
+        prods = tuple(sorted((str(c).strip().upper(), fmt_cant(q)) for c, q in lineas))
+    except (TypeError, ValueError):
+        prods = tuple(sorted((str(c).strip().upper(), str(q)) for c, q in lineas))
+    return (f"{fecha:%d/%m/%Y}", str(cc).strip().upper(), _norm(str(trab)[:60]).strip().upper(), prods)
+
+
+REGISTRADAS_EXCEL = {}   # firma → N° PS de las salidas que ya tienen N° en la columna P
+
+
 def leer_salidas(libro, hechas=(), avisar=True):
     """Arma TODAS las salidas pendientes desde la hoja PARTE.
     Fecha / trabajador / área se toman de las columnas B, F y G (vacío = el de arriba).
@@ -348,14 +408,24 @@ def leer_salidas(libro, hechas=(), avisar=True):
     # Una salida = un PEDIDO en el mostrador: filas SEGUIDAS del mismo trabajador, área y fecha.
     fecha_ant = trab_ant = cc_ant = None
     grupos, malas, clave_prev = [], [], None
+    reg = {}   # N° PS → [fecha, cc, trab, [(codigo, cant)…]]
     for i, f in enumerate(parte, start=5):
         fecha_ant = f[1] if f[1] not in (None, "") else fecha_ant
         trab_ant = f[5] if str(f[5] or "").strip() else trab_ant
         cc_ant = f[6] if f[6] not in (None, "") else cc_ant
         if not (f[2] or f[3]):
             continue                                   # fila vacía
-        if f[15] not in (None, "") or i in hechas:
+        if f[15] not in (None, ""):
+            if isinstance(fecha_ant, (datetime.date, datetime.datetime)):
+                r = reg.setdefault(str(f[15]).strip(), [fecha_ant, cc_cod(cc_ant), str(trab_ant or "").strip().upper(), []])
+                r[3].append((f[7] or f[3] or "", f[4] if f[4] not in (None, "") else 0))
             clave_prev = None; continue                # ya REGISTRADA
+        if i in hechas:
+            clave_prev = None; continue
+        obs = str(f[18] or "").strip().upper()
+        if obs.startswith(MARCAS_BLOQUEO):
+            malas.append(f"   fila {i}: {str(f[8] or f[2] or f[3])[:40]:<40} · {str(f[18])[:60]}  (borra la columna S para reintentar)")
+            clave_prev = None; continue
         if str(f[13] or "").strip().upper() != "OK":
             malas.append(f"   fila {i}: {str(f[8] or f[2] or f[3])[:40]:<40} · {f[13] or '(sin calcular)'}")
             clave_prev = None; continue
@@ -367,12 +437,15 @@ def leer_salidas(libro, hechas=(), avisar=True):
             grupos.append((clave, []))
         grupos[-1][1].append((i, f, clave[1]))
         clave_prev = clave
+    REGISTRADAS_EXCEL.clear()
+    for nro, (fe_r, cc_r, tr_r, lns) in reg.items():
+        REGISTRADAS_EXCEL.setdefault(firma(fe_r, cc_r, tr_r, lns), nro)
     if malas and avisar:
         print("Filas que NO voy a registrar (corrígelas en el Excel):")
         print("\n".join(malas)); print()
 
     salidas = []
-    for (fe, _trab, cc), filas in grupos:
+    for (fe, trab, cc), filas in grupos:
         area, sol_area = ccosto.get(cc, ("", ""))
         sol = filas[0][1][17] if filas[0][1][17] not in (None, "") else sol_area
         sol = f"{int(sol):03d}" if isinstance(sol, (int, float)) else str(sol or "").strip().zfill(3)
@@ -393,9 +466,11 @@ def leer_salidas(libro, hechas=(), avisar=True):
                 raise Alto(f"La fila {i} tiene CANTIDAD {f[4]} (debe ser mayor que 0).")
             stock = f[10] if isinstance(f[10], (int, float)) else None
             lineas.append(dict(fila=i, codigo=codigo, desc=str(f[8] or ""), stock=stock,
-                               cant=str(int(cant)) if cant.is_integer() else repr(round(cant, 4))))
+                               cant=fmt_cant(cant)))
         salidas.append(dict(fecha=datetime.datetime.combine(fe, datetime.time()), cc=cc, area=area, sol=sol,
                             glosa=", ".join(nombres)[:60], lineas=lineas,
+                            trab=trab,
+                            firma=firma(fe, cc, trab, [(l["codigo"], l["cant"]) for l in lineas]),
                             mov=str(cfg.get("Código de movimiento", "PR")),
                             ref=str(cfg.get("Tipo doc. referencia 1", "RQ"))))
     salidas.sort(key=lambda x: x["fecha"])   # por fecha (así cambia la fecha de SOFTCOM lo menos posible)
@@ -406,6 +481,16 @@ def anotar_en_excel(libro, filas, nro):
     hoja = libro.sheets["PARTE"]
     for fila in filas:
         com(lambda: setattr(hoja.range(f"P{fila}"), "value", nro))
+    com(lambda: libro.save())
+
+
+def anotar_observacion(libro, filas, txt):
+    """Escribe el motivo al inicio de la columna S (OBSERVACIÓN), sin borrar lo que ya había."""
+    hoja = libro.sheets["PARTE"]
+    for fila in filas:
+        antes = com(lambda: hoja.range(f"S{fila}").value)
+        nuevo = txt if antes in (None, "") else f"{txt} | {antes}"
+        com(lambda: setattr(hoja.range(f"S{fila}"), "value", nuevo[:250]))
     com(lambda: libro.save())
 
 
@@ -426,6 +511,38 @@ def anotar_en_registro(s, nro):
         print(f"  ⚠ No pude escribir en {REGISTRO} ({e}). Anota tú: {nro}")
 
 
+def anotar_rechazo_en_registro(s, marca, motivo):
+    try:
+        with open(REGISTRO, "a", encoding="utf-8") as fh:
+            fh.write(f"{datetime.datetime.now():%d/%m/%Y %H:%M}\t{marca}\t{s['fecha']:%d/%m/%Y}\t{s['cc']}\t{s['glosa']}\t"
+                     + "; ".join(f"{l['codigo']} x{l['cant']}" for l in s['lineas']) + f"\tmotivo={motivo}\n")
+    except Exception:
+        pass
+
+
+def buscar_duplicado(s):
+    """¿Ya se grabó una salida igual? Mira el Excel (columna P) y el historial del bot.
+    Devuelve un texto que la describe, o '' si no hay ninguna."""
+    if s["firma"] in REGISTRADAS_EXCEL:
+        return f"{REGISTRADAS_EXCEL[s['firma']]} (ya está en el Excel)"
+    try:
+        lineas = open(REGISTRO, encoding="utf-8").read().splitlines() if os.path.exists(REGISTRO) else []
+    except Exception:
+        lineas = []
+    for linea in reversed(lineas):
+        p = linea.split("\t")
+        if len(p) < 6 or p[1].upper().startswith(MARCAS_BLOQUEO):
+            continue
+        try:
+            fe = datetime.datetime.strptime(p[2], "%d/%m/%Y")
+            prods = [x.rsplit(" x", 1) for x in p[5].split("; ") if " x" in x]
+            if firma(fe, p[3], p[4], prods) == s["firma"]:
+                return f"{p[1]} (grabada por el bot el {p[0]})"
+        except Exception:
+            continue
+    return ""
+
+
 def recuperar_pendientes(libro):
     """Busca en el historial salidas que SOFTCOM ya grabó pero que no quedaron en la columna P
     (el bot se cayó entre grabar y guardar el Excel). Así no se registran dos veces."""
@@ -442,6 +559,8 @@ def recuperar_pendientes(libro):
         if len(partes) < 7 or not partes[-1].startswith("filas="):
             continue                                       # líneas viejas (v3.7) no traen filas
         nro, prods = partes[1], partes[5].split("; ")
+        if nro.upper().startswith(MARCAS_BLOQUEO):
+            continue
         filas = [int(x) for x in partes[-1][6:].split(",") if x.strip().isdigit()]
         vacias = []
         for fila, prod in zip(filas, prods):
@@ -666,6 +785,71 @@ def preparar_almovi20(fecha):
     return alm
 
 
+# ============================================================ CANCELAR UNA SALIDA A MEDIAS
+def pantalla_limpia():
+    """True si no quedó nada a medias: sin 'Detalles de Salida', sin mensajes y ALMOVI20 cerrada o vacía."""
+    if form("Detalles de Salida") or mensaje()[0]:
+        return False
+    alm = form("ALMOVI20")
+    return not alm or not texto(control(alm, A["mov"], "ThunderRT6TextBox")).strip()
+
+
+def cancelar_a_mano(motivo):
+    print(f"\n   ✋ No sé cancelar sola esta salida ({motivo}).")
+    print("      Cancélala TÚ en SOFTCOM (sin grabarla) y deja ALMOVI20 cerrada o vacía.")
+    for _ in range(3):
+        input("      Cuando termines presiona Enter aquí para seguir con la siguiente... ")
+        if esperar(pantalla_limpia, 2):
+            return
+        print("      Todavía veo la salida a medias (o un mensaje abierto) en SOFTCOM.")
+    raise Alto("La salida a medias sigue en SOFTCOM. Cancélala y vuelve a correr el bot.")
+
+
+def cancelar_salida():
+    """Deja SOFTCOM sin la salida a medias. Antes del detalle no hay nada grabado: basta cerrar
+    ALMOVI20 (si pregunta por guardar, responde No). Con el detalle abierto usa CANCELAR_DETALLE
+    o te la pide a ti."""
+    time.sleep(0.4)
+    if mensaje()[0]:
+        cancelar_a_mano("hay otro mensaje abierto"); return
+    if form("Detalles de Salida"):
+        if not CANCELAR_DETALLE:
+            cancelar_a_mano("ya estaba en Detalles de Salida"); return
+        for paso in CANCELAR_DETALLE:
+            teclas(paso)
+            h, t = mensaje()
+            if h and any(x in t.lower() for x in ("guardar", "grabar")) and boton(h, "No"):
+                pulsar(h, "No")
+        if not esperar(pantalla_limpia, 4):
+            cancelar_a_mano("los pasos de CANCELAR_DETALLE no la dejaron limpia")
+        return
+    alm = form("ALMOVI20")
+    if alm:
+        win32gui.PostMessage(alm, win32con.WM_CLOSE, 0, 0)
+        esperar(lambda: not form("ALMOVI20") or mensaje()[0], 4)
+        h, t = mensaje()
+        if h and any(x in t.lower() for x in ("guardar", "grabar", "cambios")) and boton(h, "No"):
+            pulsar(h, "No")
+        elif h:
+            cancelar_a_mano(f"SOFTCOM preguntó «{t}»"); return
+        if not esperar(lambda: not form("ALMOVI20"), 4):
+            cancelar_a_mano("ALMOVI20 no se cerró")
+
+
+def manejar_rechazo(libro, s, r):
+    print(f"\n   ✖ SOFTCOM RECHAZÓ esta salida {r.donde}:\n      «{r.motivo}»")
+    pulsar(r.dialogo, "Aceptar", "OK")
+    cancelar_salida()
+    print("   · Salida cancelada en SOFTCOM (no se grabó).")
+    txt = f"RECHAZADO {datetime.datetime.now():%d/%m %H:%M}: {r.motivo} ({r.donde})"
+    anotar_rechazo_en_registro(s, "RECHAZADO", r.motivo)
+    try:
+        anotar_observacion(libro, [ln["fila"] for ln in s["lineas"]], txt)
+        print("   · Motivo anotado en la columna S. Sigo con la siguiente.")
+    except Exception as e:
+        raise Alto(f"No pude anotar el rechazo en el Excel ({e}). Escribe en la columna S: {txt}")
+
+
 # ============================================================ PASOS EN SOFTCOM
 def avanzar_hasta(f, pos, nombre, maximo=7):
     """Presiona ENTER (como tú) hasta que el cursor llegue al campo pedido."""
@@ -753,13 +937,13 @@ def detalle(s):
             raise Alto(f"El código no quedó bien escrito: '{texto(ed).strip()}' (debía ser {ln['codigo']}).")
         for _ in range(ENTERS_CODIGO_A_CANTIDAD):
             teclas("{ENTER}")
-            sin_mensaje(f"con el código {ln['codigo']}")
+            sin_mensaje(f"con el código {ln['codigo']} (fila {ln['fila']})")
         teclas(esc(ln["cant"]))
         if not casilla(det, D["col_cantidad"], tol=15):
             raise Alto(f"La cantidad no cayó en la columna Cantidad (línea {k}). Cursor en: {donde_esta_foco()}\n"
                        f"   Revisa la línea en pantalla y no grabes.")
         teclas("{ENTER}")
-        sin_mensaje(f"con la cantidad de {ln['codigo']}")
+        sin_mensaje(f"con la cantidad {ln['cant']} de {ln['codigo']} (fila {ln['fila']})")
         if not esperar(lambda: texto(items) != antes, 3):
             raise Alto(f"SOFTCOM no registró la línea {k} ({ln['codigo']}).")
         print(f"   ✓ línea {k}: {ln['codigo']}  x {ln['cant']}   {ln['desc'][:40]}")
@@ -822,6 +1006,9 @@ def main():
     print(f"Salidas pendientes: {len(salidas)}")
     for k, s in enumerate(salidas, 1):
         print(f"   {k}. {s['fecha']:%d/%m} · {s['cc']:<5} {str(s['area'])[:28]:<28} · {len(s['lineas'])} productos · {s['glosa'][:35]}")
+        dup = buscar_duplicado(s)
+        if dup:
+            print(f"        ⚠ POSIBLE DUPLICADO de {dup}")
         for ln in s["lineas"]:
             if ln["stock"] is not None and ln["stock"] < 0:
                 print(f"        ⚠ fila {ln['fila']}: {ln['codigo']} queda con stock estimado {ln['stock']:g} (SOFTCOM podría rechazarla)")
@@ -832,21 +1019,55 @@ def main():
     todas_inicio = not PREGUNTAR_ANTES_DE_GRABAR and modo != "preguntar"
     if todas_inicio:
         print("Modo AUTOMÁTICO: graba cada salida sin preguntar. Para detenerlo: cierra esta ventana negra.\n")
-    hechas, todas, n_ok = set(), todas_inicio, 0
-    resumen = []
+    hechas, todas, n_ok, n_rech, n_saltadas = set(), todas_inicio, 0, 0, 0
+    resumen, rechazos = [], []
     while True:
         pend = leer_salidas(libro, hechas, avisar=False)
         if not pend:
             break
         s = pend[0]
+        filas_s = [ln["fila"] for ln in s["lineas"]]
         print(f"\n▶ Salida {s['fecha']:%d/%m/%Y} · CC {s['cc']} {s['area']} · solicitante {s['sol']}")
         print(f"  Glosa: {s['glosa']}")
-        preparar_almovi20(s["fecha"])
-        cabecera(s)
-        if modo == "cabecera":
-            print("\nCabecera lista (cursor en el botón Grabar). NO entré al detalle. Cierra ALMOVI20 con S, sin grabar.")
-            return
-        det, nro_pantalla = detalle(s)
+
+        # 1) ¿ya se grabó una igual? (antes de escribir NADA en SOFTCOM)
+        dup = buscar_duplicado(s)
+        if dup:
+            print(f"\n   ⚠ POSIBLE DUPLICADO: ya hay una salida igual → {dup}")
+            print("     (misma fecha, área, trabajador, productos y cantidades)")
+            resp = input("     ¿Qué hago? SI = grabarla igual · NO = saltarla y marcarla DUPLICADO · otra cosa = parar: ").strip().upper()
+            if resp == "NO":
+                txt = f"DUPLICADO? igual a {dup.split(' ')[0]} · no se grabó"
+                anotar_rechazo_en_registro(s, "DUPLICADO", dup)
+                anotar_observacion(libro, filas_s, txt)
+                print("   · Marcada en la columna S. Sigo con la siguiente.")
+                hechas.update(filas_s); n_saltadas += 1; continue
+            if resp != "SI":
+                print("\nParé sin tocar SOFTCOM."); break
+
+        # 2) ¿stock estimado negativo? (opcional)
+        sin_stock = [ln for ln in s["lineas"] if ln["stock"] is not None and ln["stock"] < 0]
+        if RECHAZAR_SIN_STOCK_ESTIMADO and sin_stock:
+            txt = "RECHAZADO sin stock estimado: " + ", ".join(f"{l['codigo']} ({l['stock']:g})" for l in sin_stock)
+            print(f"   ✖ {txt}. No la intento.")
+            anotar_rechazo_en_registro(s, "RECHAZADO", txt)
+            anotar_observacion(libro, filas_s, txt)
+            hechas.update(filas_s); n_rech += 1; continue
+
+        # 3) escribirla en SOFTCOM
+        try:
+            preparar_almovi20(s["fecha"])
+            cabecera(s)
+            if modo == "cabecera":
+                print("\nCabecera lista (cursor en el botón Grabar). NO entré al detalle. Cierra ALMOVI20 con S, sin grabar.")
+                return
+            det, nro_pantalla = detalle(s)
+        except Rechazo as r:
+            if not SEGUIR_SI_RECHAZA:
+                raise Alto(f"SOFTCOM mostró un mensaje {r.donde}:\n      «{r.motivo}»\n   Ciérralo y revisa ese dato.")
+            manejar_rechazo(libro, s, r)
+            rechazos.append(f"   ✖ {s['fecha']:%d/%m}  {s['cc']:<5} {s['glosa'][:30]:<30} {r.motivo[:50]}")
+            hechas.update(filas_s); n_rech += 1; continue
         if not todas:
             print("\nREVISA LA PANTALLA DE SOFTCOM.")
             resp = input("¿Grabo? SI = esta · TODAS = esta y las demás sin preguntar · otra cosa = parar: ").strip().upper()
@@ -867,9 +1088,13 @@ def main():
         except Exception as e:
             print(f"  ⚠ No pude anotarlo en el Excel ({e}). Escribe {nro} a mano en la columna P de esas filas.")
             break
-    print(f"\nListo: {n_ok} salida(s) registrada(s).")
+    print(f"\nListo: {n_ok} salida(s) registrada(s) · {n_rech} rechazada(s) · {n_saltadas} saltada(s) por duplicado.")
     if resumen:
         print("\n".join(resumen))
+    if rechazos:
+        print("\nRechazadas (motivo en la columna S; bórralo cuando lo corrijas para reintentar):")
+        print("\n".join(rechazos))
+    if resumen or rechazos:
         print(f"\n(Historial en {REGISTRO})")
 
 
